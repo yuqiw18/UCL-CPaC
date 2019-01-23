@@ -1,5 +1,7 @@
 function output = labs3(path, prefix, first, last, digits, suffix)
 
+% footage_001.png ~ footage_657.png
+
 %
 % Read a sequence of images and correct the film defects. This is the file 
 % you have to fill for the coursework. Do not change the function 
@@ -24,5 +26,42 @@ function output = labs3(path, prefix, first, last, digits, suffix)
 %
 
 % Your code here
+%% Image Initialisation
+
+matrix = load_sequence(path, prefix, first, last, digits, suffix);
+
+
+%% Scene Cut Detection
+
+
+
+
+
+
+%% Global Flicker Correction
+
+
+
+
+
+
+%% Blotch Correction
+
+
+
+
+
+
+%% Vertical Artifacts Correction
+
+
+
+
+
+
+%% Save the result
+%save_sequence(matrix, path, prefix, first, digits);
+
+output = 0;
 
 end
