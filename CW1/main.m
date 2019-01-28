@@ -8,28 +8,34 @@ clc;
 %
 path = 'footage';
 prefix = 'footage_';
-first = 497;
-last = 657;
+first = 1; % 497
+last = 657; % 657
 digits = 3;
 suffix = 'png';
 
 outputPath = 'output';
 
+verticalArtifactSequence = 2;
+
 % footage_001.png ~ footage_657.png
 
 % Your code here
-%% Image Initialisation
+% Image Initialisation
 rawImageSequence = load_sequence(path, prefix, first, last, digits, suffix);
-[~,~,sequenceLength]=size(rawImageSequence);
+[vertical,horizontal,sequenceLength]=size(rawImageSequence);
 imageSequence = im2double(rawImageSequence);
 
 sceneCutFrames = [];
 sceneClipPoints = [];
 
+filter2X = [0,0,0; 0,2,0; 0,0,0];
+filterLowPass = [1/9,1/9,1/9;1/9,1/9,1/9;1/9,1/9,1/9];
+
 %% Scene Cut Detection
 threshold = 45000;
-for i = 1 : sequenceLength 
-    if (i ~= 1 && i+1<sequenceLength)       
+tic
+for i = 1+1 : sequenceLength-1
+    %if (i ~= 1 && i+1<sequenceLength)       
                       
         %
         previousFrameDiff = (sum(abs(imageSequence(:,:,i)-imageSequence(:,:,i-1)),'all'));
@@ -45,9 +51,11 @@ for i = 1 : sequenceLength
 %         disp(strcat("Previous Frame Diff: ",num2str(abs(previousFrameDiff))));
 %         disp(strcat("Next Frame Diff: ",num2str(abs(nextFrameDiff))));
 %         disp(strcat("Transition Diff: ", num2str(transitionDiff)));
-%         disp(" ");        
-    end 
+%         disp(" ");   
+
+    %end 
 end
+toc
 
  disp('Scene Cut Detected @');
  disp(sceneCutFrames);
@@ -61,45 +69,72 @@ sceneClipPoints = sceneCutFrames;
 sceneClipPoints = [first, sceneClipPoints];
 % Append last frame
 sceneClipPoints = [sceneClipPoints, last];
+% Remove "redundant" cut scene frame
+sceneCutFrames = sceneCutFrames(2:2:length(sceneCutFrames));
 
-%% Scene-Based Operations
-for p = 1 : 2 : length(sceneClipPoints)-1
-    for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)    
-% Global Flicker Correction
+sceneClipPointsCount = length(sceneClipPoints);
 
-k = i-first+1;
+% Scene-Based Operations
+for p = 1 : 2 : sceneClipPointsCount-1
+    for i = sceneClipPoints(p):sceneClipPoints(p+1) 
+%% Global Flicker Reduction
 
-
-    currentFrame = imageSequence(:,:,k);
-    previousFrame = imageSequence(:,:,k-1);
+ k = i-first+1;
+% 
+%     currentFrame = imageSequence(:,:,k);
+%     previousFrame = imageSequence(:,:,k-1);
+%     
+%     intensityDiff = mean2(currentFrame) - mean2(previousFrame);  
+%     previousFrame = previousFrame + intensityDiff;
+%     
+%     imageSequence(:,:,k-1) = previousFrame;
     
-    intensityDiff = mean2(currentFrame) - mean2(previousFrame);  
-    previousFrame = previousFrame + intensityDiff;
-    
-    imageSequence(:,:,k-1) = previousFrame;
-    
-% Blotch Correction
+%% Blotch Correction
+% S-ROD with Post-Processing
+
+%     currentFrame = imageSequence(:,:,k);
+%     previousFrame = imageSequence(:,:,k-1);
+%     nextFrame = imageSequence(:,:,k+1);
+%     
+%     botchMask = zeros(vertical, horizontal);
+%     T1 = 0.1;
+%     
+% for v = 2:vertical-1
+%    for h = 2:horizontal-1
+%        p = [previousFrame(v-1,h+1),previousFrame(v-1,h),previousFrame(v-1,h-1),nextFrame(v+1,h+1),nextFrame(v+1,h),nextFrame(v+1,h-1)];
+%        if (currentFrame(v,h)-min(p)>T1)
+%            disp("Test");
+%        end
+%    end
+% end
+
+%% Vertical Artifacts Reduction
+% Medfilt with Sharpening
+if (k >= sceneCutFrames(verticalArtifactSequence))
+    for v = 1:vertical    
+        imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),5);
+    end  
+end
+    %imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
+    %imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),filter2X) - imfilter(imageSequence(:,:,k), filterLowPass);
+%% Camera Shake Calibration
 
 
 
 
 
 
-% Vertical Artifacts Correction
-
-
-
-imageSequence(:,:,k) = medfilt1(imageSequence(:,:,k), 5);
-
-
-% Camera Shake Calibration
-
-
-
-        
-        
         
     end 
 end
-%% Save the result
-save_sequence(imageSequence, outputPath, prefix, first, digits);
+
+% Overlay the Text
+for f = 1 : length(sceneCutFrames)
+    detectedFrame = imageSequence(:,:,sceneCutFrames(f));
+    detectedFrame = insertText(detectedFrame,[0,0],'Scene Cut Detected','FontSize',24); 
+    imageSequence(:,:,sceneCutFrames(f)) = rgb2gray(detectedFrame);
+end
+
+% Save the result
+%save_sequence(imageSequence, outputPath, prefix, first, digits);
+implay([im2double(rawImageSequence), imageSequence]);
