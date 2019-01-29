@@ -25,11 +25,14 @@ rawImageSequence = load_sequence(path, prefix, first, last, digits, suffix);
 [vertical,horizontal,sequenceLength]=size(rawImageSequence);
 imageSequence = im2double(rawImageSequence);
 
+imageSequenceEdge = zeros(size(imageSequence));
+
 sceneCutFrames = [];
 sceneClipPoints = [];
 
 filter2X = [0,0,0; 0,2,0; 0,0,0];
-filterLowPass = [1/9,1/9,1/9;1/9,1/9,1/9;1/9,1/9,1/9];
+meanFilter = [1/9,1/9,1/9;1/9,1/9,1/9;1/9,1/9,1/9];
+laplacianFilter = fspecial('laplacian',0);
 
 %% Scene Cut Detection
 threshold = 45000;
@@ -57,9 +60,6 @@ for i = 1+1 : sequenceLength-1
 end
 toc
 
- disp('Scene Cut Detected @');
- disp(sceneCutFrames);
-
 % Footages between 2 points will be a continuous scene e.g. 
 % 1 - 1xx is one scene
 % 1xx + 1 - 2xx is another scene
@@ -72,23 +72,48 @@ sceneClipPoints = [sceneClipPoints, last];
 % Remove "redundant" cut scene frame
 sceneCutFrames = sceneCutFrames(2:2:length(sceneCutFrames));
 
+disp('Scene Cut Detected @');
+disp(sceneCutFrames);
+
 sceneClipPointsCount = length(sceneClipPoints);
 
-% Scene-Based Operations
 for p = 1 : 2 : sceneClipPointsCount-1
-    for i = sceneClipPoints(p):sceneClipPoints(p+1) 
-%% Global Flicker Reduction
+    for i = sceneClipPoints(p):sceneClipPoints(p+1)    
+        k = i-first+1;    
+        
+        currentFrame = imageSequence(:,:,k);
+       
+        if (k - 2 < sceneClipPoints(p))
+            previousFrame = currentFrame;
+            previousFrame2 = currentFrame;
+        else
+            if (k - 1 < sceneClipPoints(p))
+                previousFrame = currentFrame;
+                previousFrame2 = imageSequence(:,:,k-1);
+            else
+                previousFrame = imageSequence(:,:,k-1);
+                previousFrame2 = imageSequence(:,:,k-2);
+            end
+        end
 
- k = i-first+1;
-% 
-%     currentFrame = imageSequence(:,:,k);
-%     previousFrame = imageSequence(:,:,k-1);
-%     
-%     intensityDiff = mean2(currentFrame) - mean2(previousFrame);  
-%     previousFrame = previousFrame + intensityDiff;
-%     
-%     imageSequence(:,:,k-1) = previousFrame;
-    
+        if (k + 2 > sceneClipPoints(p+1))
+            nextFrame = currentFrame;
+            nextFrame2 = currentFrame;
+        else
+            if (k + 1 > sceneClipPoints(p+1))
+                nextFrame = currentFrame;
+                nextFrame2 = imageSequence(:,:,k+1);
+            else
+                nextFrame = imageSequence(:,:,k+1);
+                nextFrame2 = imageSequence(:,:,k+2);
+            end
+        end      
+
+%% Global Flicker Reduction
+  
+averageIntensity = (previousFrame2 + previousFrame + currentFrame + nextFrame + nextFrame2)/5;
+imageSequence(:,:,k) = imhistmatch(currentFrame, averageIntensity);
+
 %% Blotch Correction
 % S-ROD with Post-Processing
 
@@ -112,11 +137,14 @@ for p = 1 : 2 : sceneClipPointsCount-1
 % Medfilt with Sharpening
 if (k >= sceneCutFrames(verticalArtifactSequence))
     for v = 1:vertical    
-        imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),5);
+        imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),6);
     end  
-end
+    imageSequenceEdge(:,:,k) = imfilter(imageSequence(:,:,k), laplacianFilter, 'replicate');
+    imageSequence(:,:,k) = imageSequence(:,:,k) - imageSequenceEdge(:,:,k);
     %imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
-    %imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),filter2X) - imfilter(imageSequence(:,:,k), filterLowPass);
+    %imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),filter2X) - imfilter(imageSequence(:,:,k), meanFilter);
+end
+
 %% Camera Shake Calibration
 
 
