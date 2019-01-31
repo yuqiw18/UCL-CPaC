@@ -1,10 +1,6 @@
 clear;
 clc;
 
-% cd /Users/yuqi/Desktop/UCL-CPaC/CW1/footage
-% ffmpeg -i footage_%03d.png video.mp4
-
-%
 path = 'footage';
 prefix = 'footage_';
 first = 1; % 497
@@ -15,8 +11,6 @@ suffix = 'png';
 outputPath = 'output';
 
 verticalArtifactSequence = 2;
-
-% footage_001.png ~ footage_657.png
 
 % Your code here
 % Image Initialisation
@@ -30,7 +24,6 @@ imageSequence2 = imageSequence;
 sequenceFrameDiff = zeros(size(imageSequence));
 motionMaskSequence = zeros(size(imageSequence));
 blotchMaskSequence = zeros(size(imageSequence));
-blotchMaskSequence2 = zeros(size(imageSequence));
 
 sceneCutFrames = [];
 sceneClipPoints = [];
@@ -83,15 +76,7 @@ for p = 1 : 2 : sceneClipPointsCount-1
         restoredFrame = imageSequence(:,:,k);
         
         [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,5);       
-              
-%         meanHistogram = mean(imhist(imageSequence(:,:,frameStart:frameEnd)),3);
-%         
-%         normalizedHistogram = meanHistogram/(vertical * horizontal);
-%         
-%         currentFrame = histeq(currentFrame, meanHistogram);
-%         
-%         imageSequence(:,:,k) = currentFrame;
-   
+
         averageIntensity = mean(imageSequence(:,:,frameStart:frameEnd),3);
         
         averageIntensity(averageIntensity>200)=200;
@@ -102,15 +87,9 @@ for p = 1 : 2 : sceneClipPointsCount-1
 
         imageSequence(:,:,k) = restoredFrame;
         
-        
-%    averageIntensity = mean(imageSequence(:,:,frameStart:frameEnd),3);
-    %averageIntensity = (previousFrame2 + previousFrame + currentFrame + nextFrame + nextFrame2)/5;
-%    imageSequence(:,:,k) = imhistmatch(currentFrame, averageIntensity);
     end
 end
 toc
-
-referenceIntensitySequence = imageSequence;
 
 %% Blotch Correction
 
@@ -126,33 +105,26 @@ for p = 1 : 2 : sceneClipPointsCount-1
     k = i-first+1;
         sequenceFrameDiff(:,:,k) = abs(imageSequence(:,:,k) - imageSequence(:,:,k-1));   
     end
-end
-
-for p = 1 : 2 : sceneClipPointsCount-1
+    
     for i = sceneClipPoints(p):sceneClipPoints(p+1) 
     k = i-first+1;
     [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,2);
     motionMaskSequence(:,:,k) = sum(sequenceFrameDiff(:,:,frameStart:frameEnd),3);  
     end
+    
 end
 
 % Expand the motion area so that it can cover the moving object entirely
-motionMaskSequence = imfilter(motionMaskSequence, fspecial('average', 40));
+motionMaskSequence = imfilter(motionMaskSequence, fspecial('average', 35));
 motionMaskSequence(motionMaskSequence<motionThreshold )=0;
 motionMaskSequence(motionMaskSequence>motionThreshold )=1;
-motionMaskSequence = imdilate(motionMaskSequence, strel('disk', 24, 4));
-
-%Blotch Correction
-% blotchMaskSequence = sequenceFrameDiff;
-% blotchMaskSequence(blotchMaskSequence>blotchThreshold) = 1;
-% blotchMaskSequence = blotchMaskSequence .* (1-motionMaskSequence);
+motionMaskSequence = imdilate(motionMaskSequence, strel('disk', 28, 4));
 
 % Blotch Mask Generation
 for p = 1 : 2 : sceneClipPointsCount-1
-    for i = sceneClipPoints(p):sceneClipPoints(p+1) 
-        
+    
+    for i = sceneClipPoints(p):sceneClipPoints(p+1)       
         k = i-first+1;
-
         currentFrame = imageSequence(:,:,k);
        
         if (k - 2 < sceneClipPoints(p))
@@ -167,20 +139,7 @@ for p = 1 : 2 : sceneClipPointsCount-1
                 previousFrame2 = imageSequence(:,:,k-2);
             end
         end
-
-%         if (k + 2 > sceneClipPoints(p+1))
-%             nextFrame = currentFrame;
-%             nextFrame2 = currentFrame;
-%         else
-%             if (k + 1 > sceneClipPoints(p+1))
-%                 nextFrame = currentFrame;
-%                 nextFrame2 = imageSequence(:,:,k+1);
-%             else
-%                 nextFrame = imageSequence(:,:,k+1);
-%                 nextFrame2 = imageSequence(:,:,k+2);
-%             end
-%         end   
-        
+       
         previousFrameDiff = abs(currentFrame - previousFrame);
         previousFrameDiff2 = abs(currentFrame - previousFrame2);
 
@@ -188,7 +147,14 @@ for p = 1 : 2 : sceneClipPointsCount-1
         motionMask = motionMaskSequence(:,:,k);
         
         motionMaskBin = imbinarize(motionMask);
-        motionMask = imfill(motionMaskBin,'holes');    
+        motionMask = imfill(motionMaskBin,'holes');  
+        
+        motionPercentage = sum(motionMask(:) == 1)/pixelCount;
+        
+        if (motionPercentage > 0.75)
+           motionMask(:) = 1; 
+        end
+        
         motionMaskSequence(:,:,k) = motionMask;
 
         for v = 1: vertical
@@ -204,60 +170,49 @@ for p = 1 : 2 : sceneClipPointsCount-1
                 end
             end
         end
-            
+                   
         blotchMaskSequence(:,:,k)=blotchMask;
 
     end 
-end
-
-for p = 1 : 2 : sceneClipPointsCount-1
+        
     for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)        
         k = i-first+1;
 
-        [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,3);
+        if (k < sceneCutFrames(verticalArtifactSequence))           
+            [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,3);
         
-        % Exclude current frame for blotch correction
-        validFrameCount = frameEnd-frameStart;
-        
-        currentFrame = imageSequence(:,:,k);  
-        restoredFrame = imageSequence(:,:,k);
-        restoredPreviousFrame = imageSequence(:,:,k-1);
+            % Exclude current frame for blotch correction
+            validFrameCount = frameEnd-frameStart;
 
-        for v = 1: vertical
-            for h = 1: horizontal  
-                if ( blotchMaskSequence(v,h,k) == 1)
-                   % Correct blotch by getting the average value of current
-                   % pixel position from previous and next few frames
-                   % excluding current frame itself (blotch value = error)
-                   restoredFrame(v,h) = (sum(imageSequence(v,h,frameStart:frameEnd),3) - currentFrame(v,h))/(validFrameCount);
-                   
-                   % Also correct previous frame because the detection
-                   % compares current frames with previous frames to find
-                   % blotches and previous frame may already have blotches
-                   restoredPreviousFrame(v,h) = (sum(imageSequence(v,h,frameStart:frameEnd),3) - currentFrame(v,h))/(validFrameCount);
-                   
+            currentFrame = imageSequence(:,:,k);  
+            restoredFrame = imageSequence(:,:,k);
+            restoredPreviousFrame = imageSequence(:,:,k-1);
+
+            for v = 1: vertical
+                for h = 1: horizontal  
+                    if ( blotchMaskSequence(v,h,k) == 1)
+                       % Correct blotch by getting the average value of current
+                       % pixel position from previous and next few frames
+                       % excluding current frame itself (blotch value = error)
+                       restoredFrame(v,h) = (sum(imageSequence(v,h,frameStart:frameEnd),3) - currentFrame(v,h))/(validFrameCount);
+
+                       % Also correct previous frame because the detection
+                       % compares current frames with previous frames to find
+                       % blotches and previous frame may already have blotches
+                       restoredPreviousFrame(v,h) = (sum(imageSequence(v,h,frameStart:frameEnd),3) - currentFrame(v,h))/(validFrameCount);
+                    end
                 end
             end
+
+%              imageSequence(:,:,k) = restoredFrame;
+%              imageSequence(:,:,k-1) = restoredPreviousFrame;
+            % Recover the intensity gain/loss from averaging pixel values
+            imageSequence(:,:,k) = histeq(restoredFrame, imhist(imageSequence(:,:,k)));
+            imageSequence(:,:,k-1) = histeq(restoredPreviousFrame, imhist(imageSequence(:,:,k-1)));
+
         end
-              
-         imageSequence(:,:,k) = restoredFrame;
-         imageSequence(:,:,k-1) = restoredPreviousFrame;
-        
-        % Recover the intensity gain/loss from averaging pixel values
-%         imageSequence(:,:,k) = imhistmatch(restoredFrame, imageSequence(:,:,k));
-%         imageSequence(:,:,k-1) = imhistmatch(restoredPreviousFrame, imageSequence(:,:,k-1));
-        
     end
-end
-
-
-for p = 1 : 2 : sceneClipPointsCount-1
-    for i = sceneClipPoints(p)+1:sceneClipPoints(p+1) 
-        k = i-first+1;
-        
-        imageSequence(:,:,k) = imhistmatch(imageSequence(:,:,k), referenceIntensitySequence(:,:,k));
-        
-    end
+    
     
 end
 
@@ -295,6 +250,7 @@ for p = 1 : 2 : sceneClipPointsCount-1
             
             imageSequence(:,:,k) = currentFrame;
 
+            disp("Done");
 %             for v = 1:vertical
 %                 for m = 5:-1:1
 %                 imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),m);
