@@ -4,7 +4,7 @@ clc;
 path = 'footage';
 prefix = 'footage_';
 first = 1; % 497
-last = 657; % 657
+last = 50; % 657
 digits = 3;
 suffix = 'png';
 
@@ -97,6 +97,7 @@ disp("@Blotch Correction");
 tic
 
 motionThreshold = 0.28;
+motionThresholdRefine = 0.9;
 blotchThreshold = 0.1;
 
 % Motion Mask Generation
@@ -110,15 +111,27 @@ for p = 1 : 2 : sceneClipPointsCount-1
     k = i-first+1;
     [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,2);
     motionMaskSequence(:,:,k) = sum(sequenceFrameDiff(:,:,frameStart:frameEnd),3);  
-    end
-    
+    end  
 end
 
+expansionFilter = fspecial('average', 35);
+dilateStructure = strel('disk', 28, 4);
+
 % Expand the motion area so that it can cover the moving object entirely
-motionMaskSequence = imfilter(motionMaskSequence, fspecial('average', 35));
-motionMaskSequence(motionMaskSequence<motionThreshold )=0;
-motionMaskSequence(motionMaskSequence>motionThreshold )=1;
-motionMaskSequence = imdilate(motionMaskSequence, strel('disk', 28, 4));
+motionMaskSequenceRaw = imfilter(motionMaskSequence, expansionFilter);
+motionMaskSequenceRaw(motionMaskSequenceRaw<motionThreshold )=0;
+motionMaskSequenceRaw(motionMaskSequenceRaw>motionThreshold )=1;
+motionMaskSequenceRaw = imdilate(motionMaskSequenceRaw, dilateStructure);
+
+% Refine some frames that cannot be correctly detected
+motionMaskSequenceRefine = imfilter(motionMaskSequence, expansionFilter);
+motionMaskSequenceRefine(motionMaskSequenceRefine<motionThresholdRefine )=0;
+motionMaskSequenceRefine(motionMaskSequenceRefine>motionThresholdRefine )=1;
+motionMaskSequenceRefine = imdilate(motionMaskSequenceRefine, dilateStructure);
+
+% Replace incorrect frames with refined frames
+motionMaskSequence = motionMaskSequenceRaw;
+motionMaskSequence(:,:,32:36) =  motionMaskSequenceRefine(:,:,32:36);
 
 % Blotch Mask Generation
 for p = 1 : 2 : sceneClipPointsCount-1
@@ -170,7 +183,9 @@ for p = 1 : 2 : sceneClipPointsCount-1
                 end
             end
         end
-                   
+        
+        %blotchMask = imdilate(blotchMask, strel('disk', 2, 4));
+        
         blotchMaskSequence(:,:,k)=blotchMask;
 
     end 
@@ -178,7 +193,7 @@ for p = 1 : 2 : sceneClipPointsCount-1
     for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)        
         k = i-first+1;
 
-        if (k < sceneCutFrames(verticalArtifactSequence))           
+        %if (k < sceneCutFrames(verticalArtifactSequence))           
             [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,3);
         
             % Exclude current frame for blotch correction
@@ -210,65 +225,63 @@ for p = 1 : 2 : sceneClipPointsCount-1
             imageSequence(:,:,k) = histeq(restoredFrame, imhist(imageSequence(:,:,k)));
             imageSequence(:,:,k-1) = histeq(restoredPreviousFrame, imhist(imageSequence(:,:,k-1)));
 
-        end
-    end
-    
-    
+        %end
+    end   
 end
 
 toc
 
 %% Vertical Artifacts Reduction
 % Medfilt with Sharpening
-disp("@Vertical Artifacts Reduction");
-tic
-for p = 1 : 2 : sceneClipPointsCount-1
-    for i = sceneClipPoints(p):sceneClipPoints(p+1)    
-        
-        k = i-first+1;  
-        
-        currentFrame = imageSequence(:,:,k);       
-        currentFrameFrequency = zeros(1,horizontal);
-        
-        if (k >= sceneCutFrames(verticalArtifactSequence))
-            
-            for h = 1:horizontal
-                for v = 1:vertical
-                    currentFrameFrequency(1,h) = currentFrameFrequency(1,h) + currentFrame(v,h);
-                end
-            end
-            
-            currentFrameFrequency = currentFrameFrequency/vertical;           
-            smoothFrameFrequency = medfilt1(currentFrameFrequency,7);
-            noiseFrequency = currentFrameFrequency - smoothFrameFrequency;
-            
-            for h = 1:horizontal
-                for v = 1:vertical
-                    currentFrame(v,h) = currentFrame(v,h) - noiseFrequency(1,h);
-                end
-            end
-            
-            imageSequence(:,:,k) = currentFrame;
-
-            disp("Done");
-%             for v = 1:vertical
-%                 for m = 5:-1:1
-%                 imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),m);
+% disp("@Vertical Artifacts Reduction");
+% tic
+% for p = 1 : 2 : sceneClipPointsCount-1
+%     for i = sceneClipPoints(p):sceneClipPoints(p+1)    
+%         
+%         k = i-first+1;  
+%         
+%         currentFrame = imageSequence(:,:,k);       
+%         currentFrameFrequency = zeros(1,horizontal);
+%         
+%         if (k >= sceneCutFrames(verticalArtifactSequence))
+%             
+%             for h = 1:horizontal
+%                 for v = 1:vertical
+%                     currentFrameFrequency(1,h) = currentFrameFrequency(1,h) + currentFrame(v,h);
 %                 end
 %             end
-
-            % Recover features from blurring
-            % Laplacian
-%             imageSequenceEdge(:,:,k) = imfilter(imageSequence(:,:,k), laplacianFilter, 'replicate');
-%             imageSequence(:,:,k) = imageSequence(:,:,k) - imageSequenceEdge(:,:,k);
-
-            % Sharpening
-%             imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
-%             imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),sharpenFilter) - imfilter(imageSequence(:,:,k), meanFilter);
-        end
-    end
-end
-toc
+%             
+%             currentFrameFrequency = currentFrameFrequency/vertical;           
+%             smoothFrameFrequency = medfilt1(currentFrameFrequency,7);
+%             noiseFrequency = currentFrameFrequency - smoothFrameFrequency;
+%             
+%             for h = 1:horizontal
+%                 for v = 1:vertical
+%                     currentFrame(v,h) = currentFrame(v,h) - noiseFrequency(1,h);
+%                 end
+%             end
+%             
+%             imageSequence(:,:,k) = currentFrame;
+% 
+%             disp("Done");
+% %             for v = 1:vertical
+% %                 for m = 5:-1:1
+% %                 imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),m);
+% %                 end
+% %             end
+% 
+%             % Recover features from blurring
+%             % Laplacian
+% %             imageSequenceEdge(:,:,k) = imfilter(imageSequence(:,:,k), laplacianFilter, 'replicate');
+% %             imageSequence(:,:,k) = imageSequence(:,:,k) - imageSequenceEdge(:,:,k);
+% 
+%             % Sharpening
+% %             imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
+% %             imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),sharpenFilter) - imfilter(imageSequence(:,:,k), meanFilter);
+%         end
+%     end
+% end
+% toc
 
 %% Camera Shake Calibration
 
