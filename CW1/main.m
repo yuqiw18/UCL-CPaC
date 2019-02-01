@@ -4,7 +4,7 @@ clc;
 path = 'footage';
 prefix = 'footage_';
 first = 1; % 497
-last = 50; % 657
+last = 498; % 657
 digits = 3;
 suffix = 'png';
 
@@ -34,17 +34,18 @@ laplacianFilter = fspecial('laplacian',0);
 
 %% Scene Cut Detection
 disp("@Scene Cut Detection");
-sceneCutThreshold = 45000;
+
+sceneCutThreshold = 45000/pixelCount;
 tic
 for i = 2 : sequenceLength-1
 
         previousFrameDiff = (sum(abs(imageSequence(:,:,i)-imageSequence(:,:,i-1)),'all'));
         nextFrameDiff = (sum(abs(imageSequence(:,:,i)-imageSequence(:,:,i+1)),'all'));          
-        transitionDiff = abs(previousFrameDiff - nextFrameDiff);
+        transitionDiff = abs(previousFrameDiff - nextFrameDiff)/pixelCount;
               
         if (transitionDiff > sceneCutThreshold)     
             sceneCutFrames = [sceneCutFrames, i+first-1];
-            %disp(strcat('Scene Cut Detected @', int2str(i+first-1)));
+            %disp(strcat(' - Scene Cut Detected @', int2str(i+first-1)));
         end
 end
 toc
@@ -131,7 +132,7 @@ motionMaskSequenceRefine = imdilate(motionMaskSequenceRefine, dilateStructure);
 
 % Replace incorrect frames with refined frames
 motionMaskSequence = motionMaskSequenceRaw;
-motionMaskSequence(:,:,32:36) =  motionMaskSequenceRefine(:,:,32:36);
+motionMaskSequence(:,:,30:38) =  motionMaskSequenceRefine(:,:,30:38);
 
 % Blotch Mask Generation
 for p = 1 : 2 : sceneClipPointsCount-1
@@ -232,61 +233,64 @@ end
 toc
 
 %% Vertical Artifacts Reduction
-% Medfilt with Sharpening
-% disp("@Vertical Artifacts Reduction");
-% tic
-% for p = 1 : 2 : sceneClipPointsCount-1
-%     for i = sceneClipPoints(p):sceneClipPoints(p+1)    
-%         
-%         k = i-first+1;  
-%         
-%         currentFrame = imageSequence(:,:,k);       
-%         currentFrameFrequency = zeros(1,horizontal);
-%         
-%         if (k >= sceneCutFrames(verticalArtifactSequence))
-%             
-%             for h = 1:horizontal
-%                 for v = 1:vertical
-%                     currentFrameFrequency(1,h) = currentFrameFrequency(1,h) + currentFrame(v,h);
+disp("@Vertical Artifacts Reduction");
+tic
+for p = 1 : 2 : sceneClipPointsCount-1
+    for i = sceneClipPoints(p):sceneClipPoints(p+1)    
+        
+        k = i-first+1;  
+        
+        currentFrame = imageSequence(:,:,k);       
+        currentFrameFrequency = zeros(1,horizontal);
+        
+        if (k >= sceneCutFrames(verticalArtifactSequence))
+            
+            for h = 1:horizontal
+                for v = 1:vertical
+                    currentFrameFrequency(1,h) = currentFrameFrequency(1,h) + currentFrame(v,h);
+                end
+            end
+            
+            currentFrameFrequency = currentFrameFrequency/vertical;
+            smoothFrameFrequency = medfilt1(currentFrameFrequency,7);
+                      
+            noiseFrequency = currentFrameFrequency - smoothFrameFrequency;
+            
+            for h = 1:horizontal
+                for v = 1:vertical
+                    currentFrame(v,h) = currentFrame(v,h) - noiseFrequency(1,h);
+                end
+            end
+            
+            imageSequence(:,:,k) = currentFrame;
+
+            disp("Done");
+%             for v = 1:vertical
+%                 for m = 5:-1:1
+%                 imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),m);
 %                 end
 %             end
-%             
-%             currentFrameFrequency = currentFrameFrequency/vertical;           
-%             smoothFrameFrequency = medfilt1(currentFrameFrequency,7);
-%             noiseFrequency = currentFrameFrequency - smoothFrameFrequency;
-%             
-%             for h = 1:horizontal
-%                 for v = 1:vertical
-%                     currentFrame(v,h) = currentFrame(v,h) - noiseFrequency(1,h);
-%                 end
-%             end
-%             
-%             imageSequence(:,:,k) = currentFrame;
-% 
-%             disp("Done");
-% %             for v = 1:vertical
-% %                 for m = 5:-1:1
-% %                 imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),m);
-% %                 end
-% %             end
-% 
-%             % Recover features from blurring
-%             % Laplacian
-% %             imageSequenceEdge(:,:,k) = imfilter(imageSequence(:,:,k), laplacianFilter, 'replicate');
-% %             imageSequence(:,:,k) = imageSequence(:,:,k) - imageSequenceEdge(:,:,k);
-% 
-%             % Sharpening
-% %             imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
-% %             imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),sharpenFilter) - imfilter(imageSequence(:,:,k), meanFilter);
-%         end
-%     end
-% end
-% toc
+
+            % Recover features from blurring
+            % Laplacian
+%             imageSequenceEdge(:,:,k) = imfilter(imageSequence(:,:,k), laplacianFilter, 'replicate');
+%             imageSequence(:,:,k) = imageSequence(:,:,k) - imageSequenceEdge(:,:,k);
+
+            % Sharpening
+%             imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
+%             imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),sharpenFilter) - imfilter(imageSequence(:,:,k), meanFilter);
+        end
+    end
+end
+toc
 
 %% Camera Shake Calibration
-
-%         currentFrame = uint8(currentFrame);
-%         previousFrame = uint8(previousFrame);
+% for p = 1 : 2 : sceneClipPointsCount-1
+%     for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)    
+%         k = i-first+1;    
+%         
+%         currentFrame = uint8(imageSequence(:,:,k));
+%         previousFrame = uint8(imageSequence(:,:,k-1));
 %         
 %         % detect corners of prev and curr frame
 %         currentPoints = detectFASTFeatures(currentFrame, 'MinContrast', 0.1);
@@ -305,7 +309,8 @@ toc
 %             tform = estimateGeometricTransform(previousPoints, currentPoints, 'affine');
 %             imageSequence(:,:,k) = imwarp(previousFrame, tform, 'OutputView',imref2d(size(currentFrame)));
 %         end
-
+%     end
+% end
 %%
 % Overlay the Text
 for f = 1 : length(sceneCutFrames)
@@ -315,7 +320,7 @@ for f = 1 : length(sceneCutFrames)
 end
 
 % Save the result
-%save_sequence(imageSequence, outputPath, prefix, first, digits);
+save_sequence(imageSequence, outputPath, prefix, first, digits);
 
 % Frame by frame comparasion
 implay([blotchMaskSequence,motionMaskSequence,sequenceFrameDiff, im2double(rawImageSequence), imageSequence]);
