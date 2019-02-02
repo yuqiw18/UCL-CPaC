@@ -4,15 +4,12 @@ clc;
 path = 'footage';
 prefix = 'footage_';
 first = 1; % 497
-last = 498; % 657
+last = 657; % 657
 digits = 3;
 suffix = 'png';
 
 outputPath = 'output';
 
-verticalArtifactSequence = 2;
-
-% Your code here
 % Image Initialisation
 rawImageSequence = load_sequence(path, prefix, first, last, digits, suffix);
 [vertical,horizontal,sequenceLength]=size(rawImageSequence);
@@ -21,31 +18,44 @@ pixelCount = vertical*horizontal;
 imageSequence = im2double(rawImageSequence);
 imageSequence2 = imageSequence;
 
+% Task 1 variables
 sequenceFrameDiff = zeros(size(imageSequence));
-motionMaskSequence = zeros(size(imageSequence));
-blotchMaskSequence = zeros(size(imageSequence));
 
 sceneCutFrames = [];
 sceneClipPoints = [];
 
-sharpenFilter = [0,0,0; 0,2,0; 0,0,0];
-meanFilter = [1/9,1/9,1/9;1/9,1/9,1/9;1/9,1/9,1/9];
-laplacianFilter = fspecial('laplacian',0);
+% Task 2 variables
+sceneFrameReferenceNumber = [5,7,1];
 
-%% Scene Cut Detection
+
+% Task 3 variables
+motionMaskSequence = zeros(size(imageSequence));
+blotchMaskSequence = zeros(size(imageSequence));
+
+sceneMotionThreshold = [0.24,0.36,0.6];
+sceneBlotchThreshold = [0.08,0.1,0.1];
+
+expansionFilter = fspecial('average', 35);
+dilateStructure = strel('disk', 28, 4);
+
+% Task 4 variables
+verticalArtifactSequence = 2;
+
+% Task 5 variables
+
+%% Task 1: Scene Cut Detection
 disp("@Scene Cut Detection");
-
-sceneCutThreshold = 45000/pixelCount;
+sceneCutThreshold = 45000;
 tic
 for i = 2 : sequenceLength-1
 
         previousFrameDiff = (sum(abs(imageSequence(:,:,i)-imageSequence(:,:,i-1)),'all'));
         nextFrameDiff = (sum(abs(imageSequence(:,:,i)-imageSequence(:,:,i+1)),'all'));          
-        transitionDiff = abs(previousFrameDiff - nextFrameDiff)/pixelCount;
+        transitionDiff = abs(previousFrameDiff - nextFrameDiff);
               
         if (transitionDiff > sceneCutThreshold)     
             sceneCutFrames = [sceneCutFrames, i+first-1];
-            %disp(strcat(' - Scene Cut Detected @', int2str(i+first-1)));
+            disp(strcat(' - Scene Cut Detected @', int2str(i+first-1)));
         end
 end
 toc
@@ -67,32 +77,35 @@ sceneCutFrames = sceneCutFrames(2:2:length(sceneCutFrames));
 
 sceneClipPointsCount = length(sceneClipPoints);
 
-%% Global Flicker Reduction
+%% Task 2: Global Flicker Reduction
 disp("@Global Flicker Reduction");
 tic
 for p = 1 : 2 : sceneClipPointsCount-1
+    
+    s = int8(p/2);
+    
     for i = sceneClipPoints(p):sceneClipPoints(p+1)    
-        k = i-first+1;    
+        f = i-first+1;    
         
-        restoredFrame = imageSequence(:,:,k);
+        restoredFrame = imageSequence(:,:,f);
         
-        [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,5);       
+        [frameStart, frameEnd] = FindFrameRange(f, p, sceneClipPoints,sceneFrameReferenceNumber(s));       
 
         averageIntensity = mean(imageSequence(:,:,frameStart:frameEnd),3);
         
-        averageIntensity(averageIntensity>200)=200;
+        averageIntensity(averageIntensity>180)=180;
         
         targetHistogram = imhist(averageIntensity);
         
         restoredFrame = histeq(restoredFrame, targetHistogram);
 
-        imageSequence(:,:,k) = restoredFrame;
+        imageSequence(:,:,f) = restoredFrame;
         
     end
 end
 toc
 
-%% Blotch Correction
+%% Task 3: Blotch Correction
 
 disp("@Blotch Correction");
 tic
@@ -102,27 +115,39 @@ motionThresholdRefine = 0.9;
 blotchThreshold = 0.1;
 
 % Motion Mask Generation
-for p = 1 : 2 : sceneClipPointsCount-1
+for p = 1 : 2 : sceneClipPointsCount-1  
     for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)
-    k = i-first+1;
-        sequenceFrameDiff(:,:,k) = abs(imageSequence(:,:,k) - imageSequence(:,:,k-1));   
+    f = i-first+1;
+        sequenceFrameDiff(:,:,f) = abs(imageSequence(:,:,f) - imageSequence(:,:,f-1));   
     end
     
     for i = sceneClipPoints(p):sceneClipPoints(p+1) 
-    k = i-first+1;
-    [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,2);
-    motionMaskSequence(:,:,k) = sum(sequenceFrameDiff(:,:,frameStart:frameEnd),3);  
+    f = i-first+1;
+    [frameStart, frameEnd] = FindFrameRange(f, p, sceneClipPoints,2);
+    motionMaskSequence(:,:,f) = sum(sequenceFrameDiff(:,:,frameStart:frameEnd),3);  
     end  
 end
 
-expansionFilter = fspecial('average', 35);
-dilateStructure = strel('disk', 28, 4);
+    motionMaskSequenceRaw = imfilter(motionMaskSequence, expansionFilter);
 
-% Expand the motion area so that it can cover the moving object entirely
-motionMaskSequenceRaw = imfilter(motionMaskSequence, expansionFilter);
-motionMaskSequenceRaw(motionMaskSequenceRaw<motionThreshold )=0;
-motionMaskSequenceRaw(motionMaskSequenceRaw>motionThreshold )=1;
-motionMaskSequenceRaw = imdilate(motionMaskSequenceRaw, dilateStructure);
+for p = 1 : 2 : sceneClipPointsCount-1
+    s = int8(p/2);
+    frameStart = sceneClipPoints(p);
+    frameEnd = sceneClipPoints(p+1);
+
+    currentSceneSequenceRaw = motionMaskSequenceRaw(:,:,frameStart:frameEnd);
+    currentSceneSequenceRaw(currentSceneSequenceRaw<sceneMotionThreshold(s) )=0;
+    currentSceneSequenceRaw(currentSceneSequenceRaw>sceneMotionThreshold(s) )=1;
+    currentSceneSequenceRaw = imdilate(currentSceneSequenceRaw, dilateStructure);
+    motionMaskSequenceRaw(:,:,frameStart:frameEnd) = currentSceneSequenceRaw;
+    
+end
+
+% % Expand the motion area so that it can cover the moving object entirely
+% motionMaskSequenceRaw = imfilter(motionMaskSequence, expansionFilter);
+% motionMaskSequenceRaw(motionMaskSequenceRaw<motionThreshold )=0;
+% motionMaskSequenceRaw(motionMaskSequenceRaw>motionThreshold )=1;
+% motionMaskSequenceRaw = imdilate(motionMaskSequenceRaw, dilateStructure);
 
 % Refine some frames that cannot be correctly detected
 motionMaskSequenceRefine = imfilter(motionMaskSequence, expansionFilter);
@@ -134,23 +159,26 @@ motionMaskSequenceRefine = imdilate(motionMaskSequenceRefine, dilateStructure);
 motionMaskSequence = motionMaskSequenceRaw;
 motionMaskSequence(:,:,30:38) =  motionMaskSequenceRefine(:,:,30:38);
 
+%blotch(blotch>blotchThreshold)=1;
+
+
 % Blotch Mask Generation
 for p = 1 : 2 : sceneClipPointsCount-1
-    
+    s = int8(p/2);
     for i = sceneClipPoints(p):sceneClipPoints(p+1)       
-        k = i-first+1;
-        currentFrame = imageSequence(:,:,k);
+        f = i-first+1;
+        currentFrame = imageSequence(:,:,f);
        
-        if (k - 2 < sceneClipPoints(p))
+        if (f - 2 < sceneClipPoints(p))
             previousFrame = currentFrame;
             previousFrame2 = currentFrame;
         else
-            if (k - 1 < sceneClipPoints(p))
+            if (f - 1 < sceneClipPoints(p))
                 previousFrame = currentFrame;
-                previousFrame2 = imageSequence(:,:,k-1);
+                previousFrame2 = imageSequence(:,:,f-1);
             else
-                previousFrame = imageSequence(:,:,k-1);
-                previousFrame2 = imageSequence(:,:,k-2);
+                previousFrame = imageSequence(:,:,f-1);
+                previousFrame2 = imageSequence(:,:,f-2);
             end
         end
        
@@ -158,23 +186,24 @@ for p = 1 : 2 : sceneClipPointsCount-1
         previousFrameDiff2 = abs(currentFrame - previousFrame2);
 
         blotchMask = zeros(size(currentFrame));
-        motionMask = motionMaskSequence(:,:,k);
+        motionMask = motionMaskSequence(:,:,f);
         
         motionMaskBin = imbinarize(motionMask);
         motionMask = imfill(motionMaskBin,'holes');  
         
         motionPercentage = sum(motionMask(:) == 1)/pixelCount;
         
-        if (motionPercentage > 0.75)
+        if (motionPercentage > 0.65)
            motionMask(:) = 1; 
         end
         
-        motionMaskSequence(:,:,k) = motionMask;
+        motionMaskSequence(:,:,f) = motionMask;
 
         for v = 1: vertical
             for h = 1: horizontal  
                 % Mark current pixel as blotch
-                if (previousFrameDiff(v,h)>blotchThreshold || previousFrameDiff2(v,h)>blotchThreshold)
+                %|| previousFrameDiff2(v,h)>blotchThreshold%
+                if (previousFrameDiff(v,h)>blotchThreshold)
                     blotchMask(v,h) = 1;
                 end
                 
@@ -184,29 +213,27 @@ for p = 1 : 2 : sceneClipPointsCount-1
                 end
             end
         end
-        
-        %blotchMask = imdilate(blotchMask, strel('disk', 2, 4));
-        
-        blotchMaskSequence(:,:,k)=blotchMask;
+           
+        blotchMaskSequence(:,:,f)=blotchMask;
 
     end 
         
     for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)        
-        k = i-first+1;
+        f = i-first+1;
 
-        %if (k < sceneCutFrames(verticalArtifactSequence))           
-            [frameStart, frameEnd] = FindFrameRange(k, p, sceneClipPoints,3);
+        if (f < sceneCutFrames(verticalArtifactSequence))           
+            [frameStart, frameEnd] = FindFrameRange(f, p, sceneClipPoints,3);
         
             % Exclude current frame for blotch correction
             validFrameCount = frameEnd-frameStart;
 
-            currentFrame = imageSequence(:,:,k);  
-            restoredFrame = imageSequence(:,:,k);
-            restoredPreviousFrame = imageSequence(:,:,k-1);
+            currentFrame = imageSequence(:,:,f);  
+            restoredFrame = imageSequence(:,:,f);
+            restoredPreviousFrame = imageSequence(:,:,f-1);
 
             for v = 1: vertical
                 for h = 1: horizontal  
-                    if ( blotchMaskSequence(v,h,k) == 1)
+                    if ( blotchMaskSequence(v,h,f) == 1)
                        % Correct blotch by getting the average value of current
                        % pixel position from previous and next few frames
                        % excluding current frame itself (blotch value = error)
@@ -220,71 +247,53 @@ for p = 1 : 2 : sceneClipPointsCount-1
                 end
             end
 
-%              imageSequence(:,:,k) = restoredFrame;
-%              imageSequence(:,:,k-1) = restoredPreviousFrame;
-            % Recover the intensity gain/loss from averaging pixel values
-            imageSequence(:,:,k) = histeq(restoredFrame, imhist(imageSequence(:,:,k)));
-            imageSequence(:,:,k-1) = histeq(restoredPreviousFrame, imhist(imageSequence(:,:,k-1)));
-
-        %end
+             imageSequence(:,:,f) = restoredFrame;
+             imageSequence(:,:,f-1) = restoredPreviousFrame;
+             
+        end
     end   
 end
 
 toc
 
-%% Vertical Artifacts Reduction
-disp("@Vertical Artifacts Reduction");
-tic
-for p = 1 : 2 : sceneClipPointsCount-1
-    for i = sceneClipPoints(p):sceneClipPoints(p+1)    
-        
-        k = i-first+1;  
-        
-        currentFrame = imageSequence(:,:,k);       
-        currentFrameFrequency = zeros(1,horizontal);
-        
-        if (k >= sceneCutFrames(verticalArtifactSequence))
-            
-            for h = 1:horizontal
-                for v = 1:vertical
-                    currentFrameFrequency(1,h) = currentFrameFrequency(1,h) + currentFrame(v,h);
-                end
-            end
-            
-            currentFrameFrequency = currentFrameFrequency/vertical;
-            smoothFrameFrequency = medfilt1(currentFrameFrequency,7);
-                      
-            noiseFrequency = currentFrameFrequency - smoothFrameFrequency;
-            
-            for h = 1:horizontal
-                for v = 1:vertical
-                    currentFrame(v,h) = currentFrame(v,h) - noiseFrequency(1,h);
-                end
-            end
-            
-            imageSequence(:,:,k) = currentFrame;
-
-            disp("Done");
-%             for v = 1:vertical
-%                 for m = 5:-1:1
-%                 imageSequence(v,:,k) = medfilt1(imageSequence(v,:,k),m);
+%% Task 4: Vertical Artifacts Reduction
+% disp("@Vertical Artifacts Reduction");
+% tic
+% for p = 1 : 2 : sceneClipPointsCount-1
+%     for i = sceneClipPoints(p):sceneClipPoints(p+1)    
+%         
+%         k = i-first+1;  
+%         
+%         currentFrame = imageSequence(:,:,k);       
+%         currentFrameFrequency = zeros(1,horizontal);
+%         
+%         if (k >= sceneCutFrames(verticalArtifactSequence))
+%             
+%             for h = 1:horizontal
+%                 for v = 1:vertical
+%                     currentFrameFrequency(1,h) = currentFrameFrequency(1,h) + currentFrame(v,h);
 %                 end
 %             end
+%             
+%             currentFrameFrequency = currentFrameFrequency/vertical;
+%             smoothFrameFrequency = medfilt1(currentFrameFrequency,7);
+%                       
+%             noiseFrequency = currentFrameFrequency - smoothFrameFrequency;
+%             
+%             for h = 1:horizontal
+%                 for v = 1:vertical
+%                     currentFrame(v,h) = currentFrame(v,h) - noiseFrequency(1,h);
+%                 end
+%             end
+%             
+%             imageSequence(:,:,k) = currentFrame;
+%             
+%         end
+%     end
+% end
+% toc
 
-            % Recover features from blurring
-            % Laplacian
-%             imageSequenceEdge(:,:,k) = imfilter(imageSequence(:,:,k), laplacianFilter, 'replicate');
-%             imageSequence(:,:,k) = imageSequence(:,:,k) - imageSequenceEdge(:,:,k);
-
-            % Sharpening
-%             imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
-%             imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),sharpenFilter) - imfilter(imageSequence(:,:,k), meanFilter);
-        end
-    end
-end
-toc
-
-%% Camera Shake Calibration
+%% Task 5: Camera Shake Calibration
 % for p = 1 : 2 : sceneClipPointsCount-1
 %     for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)    
 %         k = i-first+1;    
@@ -313,16 +322,17 @@ toc
 % end
 %%
 % Overlay the Text
-for f = 1 : length(sceneCutFrames)
-    detectedFrame = imageSequence(:,:,sceneCutFrames(f));
-    detectedFrame = insertText(detectedFrame,[0,0],'Scene Cut Detected','FontSize',24); 
-    imageSequence(:,:,sceneCutFrames(f)) = rgb2gray(detectedFrame);
-end
+% for t = 1 : length(sceneCutFrames)
+%     detectedFrame = imageSequence(:,:,sceneCutFrames(t));
+%     detectedFrame = insertText(detectedFrame,[0,0],'Scene Cut Detected','FontSize',24); 
+%     imageSequence(:,:,sceneCutFrames(t)) = rgb2gray(detectedFrame);
+% end
 
 % Save the result
-save_sequence(imageSequence, outputPath, prefix, first, digits);
+%save_sequence(imageSequence, outputPath, prefix, first, digits);
 
 % Frame by frame comparasion
+%implay([im2double(rawImageSequence), imageSequence]);
 implay([blotchMaskSequence,motionMaskSequence,sequenceFrameDiff, im2double(rawImageSequence), imageSequence]);
 
 %%
@@ -333,6 +343,7 @@ function [frameStart, frameEnd] = FindFrameRange(currentFrame, currentSequenceNu
 startLimit = sceneClipPoints(currentSequenceNumber);
     endLimit = sceneClipPoints(currentSequenceNumber+1);
     
+    % Find start frame
     for i = n:-1:0
         if (currentFrame - i < startLimit)
             
@@ -342,6 +353,7 @@ startLimit = sceneClipPoints(currentSequenceNumber);
         end
     end
     
+    % Find end frame
     for i = n:-1:0
         if (currentFrame + i > endLimit)
             
@@ -350,4 +362,5 @@ startLimit = sceneClipPoints(currentSequenceNumber);
             break;
         end
     end
+    
 end
