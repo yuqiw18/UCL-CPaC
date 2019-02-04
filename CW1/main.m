@@ -1,9 +1,10 @@
 clear;
 clc;
+warning('off','all');
 
 path = 'footage';
 prefix = 'footage_';
-first = 1; % 497
+first = 1;
 last = 657; % 657
 digits = 3;
 suffix = 'png';
@@ -241,91 +242,74 @@ toc
 % toc
 
 %% Task 4: Vertical Artifacts Reduction
-disp("@Vertical Artifacts Reduction");
-tic
-for p = 1 : 2 : sceneClipPointsCount-1
-    for i = sceneClipPoints(p):sceneClipPoints(p+1)    
-        
-        f = i-first+1;  
-        
-        currentFrame = imageSequence(:,:,f);       
-        currentFrameFrequency = zeros(1,horizontal);
-        
-        if (f >= sceneCutFrames(verticalArtifactSequence))
-            
-            for h = 1:horizontal
-                for v = 1:vertical
-                    currentFrameFrequency(1,h) = currentFrameFrequency(1,h) + currentFrame(v,h);
-                end
-            end
-            
-            currentFrameFrequency = currentFrameFrequency/vertical;
-            smoothFrameFrequency = medfilt1(currentFrameFrequency,12);
-                      
-            noiseFrequency = currentFrameFrequency - smoothFrameFrequency;
-            
-            for h = 1:horizontal
-                for v = 1:vertical
-                    currentFrame(v,h) = currentFrame(v,h) - noiseFrequency(1,h);
-                end
-            end
-            
-            imageSequence(:,:,f) = currentFrame;
-                    
-%             for v = 1:vertical
-%                 for m = 5:-1:1
-%                 imageSequence(v,:,f) = medfilt1(imageSequence(v,:,f),m);
-%                 end
-%             end
-% 
-%             %Recover features from blurring
-%             %Laplacian
-%             imageSequenceEdge(:,:,f) = imfilter(imageSequence(:,:,f), laplacianFilter, 'replicate');
-%             imageSequence(:,:,f) = imageSequence(:,:,f) - imageSequenceEdge(:,:,f);
-% 
-%             % Sharpening
-%             imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
-%             imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),sharpenFilter) - imfilter(imageSequence(:,:,k), meanFilter);
-            
-        end
-    end
-end
-toc
-
-%% Task 5: Camera Shake Calibration
-% disp("@Camera Shake Calibration");
+% disp("@Vertical Artifacts Reduction");
 % tic
 % for p = 1 : 2 : sceneClipPointsCount-1
-%     
-% %     referenceFrame = imageSequence(:,:,sceneClipPoints(p));
-% %     referencePoints = detectFASTFeatures(referenceFrame, 'MinContrast', shakeThreshold);
-% %     [referenceFeatures, referencePoints] = extractFeatures(referenceFrame, referencePoints);
-%     
-%     for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)    
-%         k = i-first+1;    
+%     for i = sceneClipPoints(p):sceneClipPoints(p+1)    
 %         
-%         currentFrame = imageSequence(:,:,k);
-%         previousFrame = imageSequence(:,:,k-1);
+%         f = i-first+1;  
 %         
-%         % detect corners of prev and curr frame
-%         currentPoints = detectFASTFeatures(currentFrame, 'MinContrast', shakeThreshold);
-%         previousPoints = detectFASTFeatures(previousFrame, 'MinContrast', shakeThreshold);
+%         currentFrame = imageSequence(:,:,f);       
+%         currentFrameFrequency = zeros(1,horizontal);
 %         
-%         % extract descriptors from corners
-%         [currentFeatures, currentPoints] = extractFeatures(currentFrame, currentPoints);
-%         [previousFeatures, previousPoints] = extractFeatures(previousFrame, previousPoints);
-%         
-%         % match features
-%         indexPairs = matchFeatures(currentFeatures, previousFeatures);
-%         currentPoints = currentPoints(indexPairs(:, 1), :);
-%         previousPoints = previousPoints(indexPairs(:, 2), :);
-%              
-%         tform = estimateGeometricTransform(previousPoints, currentPoints, 'affine');
-%         imageSequence(:,:,k) = imwarp(previousFrame, tform, 'OutputView',imref2d(size(currentFrame)));
-%         
+%         if (f >= sceneCutFrames(verticalArtifactSequence))
+%             
+%             for h = 1:horizontal
+%                 for v = 1:vertical
+%                     currentFrameFrequency(1,h) = currentFrameFrequency(1,h) + currentFrame(v,h);
+%                 end
+%             end
+%             
+%             currentFrameFrequency = currentFrameFrequency/vertical;
+%             smoothFrameFrequency = medfilt1(currentFrameFrequency,12);
+%                       
+%             noiseFrequency = currentFrameFrequency - smoothFrameFrequency;
+%             
+%             for h = 1:horizontal
+%                 for v = 1:vertical
+%                     currentFrame(v,h) = currentFrame(v,h) - noiseFrequency(1,h);
+%                 end
+%             end
+%             
+%             imageSequence(:,:,f) = currentFrame;
+%                     
+% %             for v = 1:vertical
+% %                 for m = 5:-1:1
+% %                 imageSequence(v,:,f) = medfilt1(imageSequence(v,:,f),m);
+% %                 end
+% %             end
+% % 
+% %             %Recover features from blurring
+% %             %Laplacian
+% %             imageSequenceEdge(:,:,f) = imfilter(imageSequence(:,:,f), laplacianFilter, 'replicate');
+% %             imageSequence(:,:,f) = imageSequence(:,:,f) - imageSequenceEdge(:,:,f);
+% % 
+% %             % Sharpening
+% %             imageSequence(:,:,k) = imsharpen(imageSequence(:,:,k));
+% %             imageSequence(:,:,k)= imfilter(imageSequence(:,:,k),sharpenFilter) - imfilter(imageSequence(:,:,k), meanFilter);
+%             
+%         end
 %     end
 % end
 % toc
+
+%% Task 5: Camera Shake Calibration
+disp("@Camera Shake Calibration");
+tic
+
+for p = 1 : 2 : sceneClipPointsCount-1
+    for i = sceneClipPoints(p)+1:sceneClipPoints(p+1)    
+        f = i-first+1; 
+        
+        referenceFrame = imageSequence(:,:,f-1);
+        restoredFrame = imageSequence(:,:,f);      
+        transform = imregcorr(restoredFrame, referenceFrame);       
+        restoredFrame = imwarp(restoredFrame, transform, 'OutputView', imref2d(size(referenceFrame)));        
+        imageSequence(:,:,f) = restoredFrame;
+        
+    end
+end
+toc
 
 %%
 % Overlay the Text
@@ -341,8 +325,8 @@ save_sequence(imageSequence, outputPath, prefix, first, digits);
 %save_sequence(motionMaskSequence, 'output2', prefix, first, digits);
 
 % Frame by frame comparasion
-%implay([im2double(rawImageSequence), imageSequence]);
-implay([blotchMaskSequence,motionMaskSequence,sequenceFrameDiff, im2double(rawImageSequence), imageSequence]);
+implay([im2double(rawImageSequence), imageSequence]);
+%implay([blotchMaskSequence,motionMaskSequence,sequenceFrameDiff, im2double(rawImageSequence), imageSequence]);
 %implay([im2double(rawImageSequence), imageSequence, abs(im2double(rawImageSequence)-imageSequence)]);
 %%
 % Functions
@@ -371,40 +355,5 @@ startLimit = sceneClipPoints(currentSequenceNumber);
             break;
         end
     end
-    
-end
-
-function [frameStart, frameEnd] = FindFrameRange2(currentFrame, currentSequenceNumber, sceneClipPoints, n)
-    
-    startLimit = sceneClipPoints(currentSequenceNumber);
-    endLimit = sceneClipPoints(currentSequenceNumber+1);
-    
-    startLimitShift = 0;
-    endLimitShift = 0;
-    
-    % Find start frame
-    for i = n:-1:0
-        if (currentFrame - i < startLimit)
-            
-        else
-            frameStart = currentFrame - i;
-            endLimitShift = n - i;
-            break;
-        end
-    end
-    
-    % Find end frame
-    for i = n:-1:0
-        if (currentFrame + i > endLimit)
-            
-        else
-            frameEnd = currentFrame + i;
-            startLimitShift = n - i;
-            break;
-        end
-    end
-    
-    frameStart = frameStart - startLimitShift;
-    frameEnd = frameEnd + endLimitShift;
     
 end
