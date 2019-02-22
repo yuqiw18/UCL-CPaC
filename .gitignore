@@ -2,6 +2,9 @@
 [Oo]utput/
 [Bb]uild/
 
+# Large Assets
+[Ff]low/
+
 # OS X
 # General
 .DS_Store
