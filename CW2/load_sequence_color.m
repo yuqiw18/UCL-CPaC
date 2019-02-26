@@ -1,9 +1,9 @@
-function output = load_sequence(path, prefix, first, last, digits, suffix)
+function output = load_sequence_color(path, prefix, first, last, digits, suffix)
 
 %
 % Read a sequence of images, convert them in gray level and returns the
 % data in a matrix
-% 
+%
 % Arguments:
 %
 % path: path of the files
@@ -36,32 +36,32 @@ end
 filename = strcat(path,slash,prefix,number,'.',suffix);
 
 % Load image and convert it to gray level
-current = imread(filename);
+current = im2double(imread(filename));
 
 % Print filename
 % sprintf('file=%s\n',filename)
 
 % Create output matrix
-output = uint8(zeros(size(current,1), size(current,2), last-first+1));
-output(:,:,1) = current;
+output = zeros(size(current,1), size(current,2), 3, last-first+1);
+output(:,:,:,1) = current;
 
 for i=2:last-first+1
-    
+
     % Get the padded frame number
     number = padded_number(first+i-1, digits);
-    
+
     % Create the filename
     filename = strcat(path,slash,prefix,number,'.',suffix);
-    
+
     % Load image and convert it to gray level
-    current = imread(filename);
-    
+    current = im2double(imread(filename));
+
     % Update output matrix
-    output(:,:,i) = current;
-    
+    output(:,:,:,i) = current;
+
     % Print filename
 	% sprintf('file=%s\n',filename)
-    
+
 end
 
 end
@@ -74,15 +74,15 @@ function output = padded_number(number, digits)
 
 % Convert to string
 output = num2str(number);
-    
+
 % Get length of string
 l = size(output,2);
-    
+
 % Add necessary zeros
 for i=l+1:digits
-    
+
     output=strcat('0', output);
-    
+
 end
 
 end
