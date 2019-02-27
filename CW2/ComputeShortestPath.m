@@ -1,5 +1,6 @@
 function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, endPoint, paths, flowsData)
-
+disp("@Compute Shortest Path");
+tic  
     last_pixs = zeros(length(paths),2);
     
     for i = 1:length(paths)
@@ -39,4 +40,5 @@ function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, end
     
     closestX = last_pixs(closestIndex,2);
     closestY = last_pixs(closestIndex,1);
+toc
 end

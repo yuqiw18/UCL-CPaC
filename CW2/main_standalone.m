@@ -1,6 +1,6 @@
-clear;
-clc;
-warning('off','all');
+% clear;
+% clc;
+% warning('off','all');
 
 % Setup
 path = 'data';
@@ -12,18 +12,29 @@ suffix = 'jpg';
 outputPath = 'output';
 
 % Initialisation
-flowsFile = load('flow/flows.mat');
-flowsData = flowsFile.flows_a;
-selectedImageIndex = 5;
 
-% Load image sequence
-rawImageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);
+disp("@Load Optical Flow Data");
+tic  
+    flowsFile = load('flow/flows.mat');
+    flowsData = flowsFile.flows_a;
+    selectedImageIndex = 5;
+toc
+
+%Load image sequence
+
+disp("@Load Image Sequence");
+tic  
+    rawImageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);
+    imageSequence = imresize(rawImageSequence, 0.3);
+toc
 
 % Downsize image size to 30% to match optical flow used in later stage
-imageSequence = imresize(rawImageSequence, 0.3);
-imageCount = size(imageSequence,4);
+
+imageCount = last - first + 1;
+% imageCount = size(imageSequence,4);
 
 %% Basic Section
+
 % 1. Compute a Distance Matrix that encodes the similarity in appearance
 % between all the frames in the collection.
 distanceMatrix = ComputeDistanceMatrix(imageSequence);
@@ -53,58 +64,11 @@ for i = 1:w-1
     end
 end
 
-sparseDistanceMatrix = sparse(connectionMatrix);
-% graph = biograph(sparseDistanceMatrix, [],'ShowArrows','off','ShowWeights','on','LayoutType','equilibrium');
-
-% graph = graphminspantree(sparseDistanceMatrix);
+sparseDistanceMatrix = sparse(distanceMatrix);
+% graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
 
-% 3. For each node in the graph, compute the shortest path.
-[~,paths,~] = graphshortestpath(sparseDistanceMatrix,selectedImageIndex);
-% disp(paths);
-
-% 4. Compute the advected location of point s in every other node, using
-% optical flow.
-
-% [height, width, pair, ~] = size(flowsData);
-% flowValueList = zeros(imageCount,height,width,pair);
-% 
-% for i=1:size(paths,2)
-%     
-%    currentPath = paths(i);
-%    
-%    currentPath = currentPath{1};
-%    
-%    totalFlow = zeros(height,width,pair);
-%    
-%    for f = 1:size(currentPath,2)
-%        currentFrameIndex = currentPath(f);
-%        
-%        if (f+1 > size(currentPath,2))
-%            nextFrameIndex = currentPath(f);
-%        else
-%            nextFrameIndex = currentPath(f+1);
-%        end
-%        
-%        if (currentFrameIndex > nextFrameIndex )
-%            
-%            k = (currentFrameIndex-1)*(currentFrameIndex-2)/2 + nextFrameIndex;        
-%            flow = flowsData(:,:,:,k);
-%            totalFlow = totalFlow + flow;
-%        elseif (currentFrameIndex < nextFrameIndex)
-%            k = (nextFrameIndex-1)*(nextFrameIndex-2)/2+currentFrameIndex;
-%            flow = -flowsData(:,:,:,k);
-%            totalFlow = totalFlow + flow;
-%        else
-%            flow = zeros(height,width,pair);
-%            totalFlow = totalFlow + flow;
-%        end 
-%    end
-%    flowValueList(i,:,:,:) = totalFlow;
-% end
-
-% 5. Pick the path in Paths whose advected location comes closest to the selected point. 
-% Render this path as the output image sequence for this user-drawn segment.
+% graph = graphminspantree(sparseDistanceMatrix);
 
 imshow(imageSequence(:,:,:,selectedImageIndex)),title('Draw a path with at least 5 points');
 pointCount = 0;
@@ -120,6 +84,12 @@ while(pointCount<5)
         imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
     end
 end
+
+% 3. For each node in the graph, compute the shortest path.
+[~,paths,~] = graphshortestpath(sparseDistanceMatrix,selectedImageIndex);
+
+% 4. Compute the advected location of point s in every other node, using
+% optical flow.
 
 EstimatedClosestAdvLoc = zeros(pointCount,2);
 % EstimatedClosestAdvLoc = [pathX, pathY]
@@ -157,8 +127,10 @@ hold on;
 plot(EstimatedClosestAdvLoc(:,1), EstimatedClosestAdvLoc(:,2), 'ro-');
 hold off;
 
-outputIndex = ConvertPathToIndex(closestPaths);
+% 5. Pick the path in Paths whose advected location comes closest to the selected point. 
+% Render this path as the output image sequence for this user-drawn segment.
 
+outputIndex = ConvertPathToIndex(closestPaths);
 outputImageSequence = zeros(360, 480, 3, length(outputIndex));
 
 for f = 1:length(outputIndex)
@@ -167,5 +139,7 @@ end
 
 implay(outputImageSequence);
 
-% outputImageSequence = 
-% implay(outputImageSequence)
+
+
+
+

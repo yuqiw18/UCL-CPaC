@@ -1,5 +1,7 @@
 % Generate image sequence from given paths (no duplication between 2 frames)
 function indexSequence = ConvertPathToIndex(paths)
+disp("@Convert Path to Index");
+tic  
     indexSequence = [];
     lastIndex = 0;
     for p = 1:length(paths)
@@ -11,4 +13,5 @@ function indexSequence = ConvertPathToIndex(paths)
             end
         end
     end
+toc
 end

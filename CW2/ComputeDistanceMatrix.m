@@ -1,7 +1,6 @@
 function distanceMatrix = ComputeDistanceMatrix(imageSequence)
 disp("@Compute Distance Matrix");
-    tic  
-    
+tic  
     [~, ~, ~, f] = size(imageSequence);
     distanceMatrix = zeros(f, f);
     
