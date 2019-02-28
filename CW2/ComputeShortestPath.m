@@ -1,6 +1,5 @@
 function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, endPoint, paths, flowsData)
-disp("@Compute Shortest Path");
-tic  
+
     last_pixs = zeros(length(paths),2);
     
     for i = 1:length(paths)
@@ -21,16 +20,26 @@ tic
                     k = (currentFrameIndex-1)*(currentFrameIndex-2)/2 + nextFrameIndex;    
                     flowX = flowsData(current_pos(1),current_pos(2),1,k);
                     flowY = flowsData(current_pos(1),current_pos(2),2,k);
-                else
+                    
+                elseif (currentFrameIndex<nextFrameIndex)
+                    
                     k = (nextFrameIndex-1)*(nextFrameIndex-2)/2+currentFrameIndex;
                     flowX = -flowsData(current_pos(1),current_pos(2),1,k);
                     flowY = -flowsData(current_pos(1),current_pos(2),2,k);
+                    
+                else
+                    flowX = 0;
+                    flowY = 0;
                 end
                 currentLocation = currentLocation + [flowY, flowX];
             end   
+            
             last_pixs(i,:) = currentLocation;
+            
         else
+            
             last_pixs(i,:) = currentLocation;
+            
         end    
     end
     
@@ -40,5 +49,4 @@ tic
     
     closestX = last_pixs(closestIndex,2);
     closestY = last_pixs(closestIndex,1);
-toc
 end
