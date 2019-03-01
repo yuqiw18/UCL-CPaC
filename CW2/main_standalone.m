@@ -115,8 +115,8 @@ disp("@Compute Shortest Path");
 tic  
     for i = 1:pointCount-1
         
-        currentAdvLoc = [pathY(i),pathX(i)];
-        nextAdvLoc = [pathY(i+1),pathX(i+1)]; 
+        currentAdvLoc = [pathX(i),pathY(i)];
+        nextAdvLoc = [pathX(i+1),pathY(i+1)]; 
 
         [closestIndex,closestX, closestY] = ComputeShortestPath(currentAdvLoc, nextAdvLoc, paths, flowsData);
         

@@ -1,4 +1,4 @@
-function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, endPoint, paths, flowsData)
+function [closestIndex, closestX, closestY] = ComputeShortestPath(startPoint, endPoint, paths, flowsData)
 
     pathCount = length(paths);
     positionFlowValue = zeros(pathCount,2);
@@ -19,23 +19,27 @@ function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, end
                 
                 currentPositionX = currentPosition(1);
                 currentPositionY = currentPosition(2);
-                 
+                
+                % The width and height of optical flow is actually the
+                % height and width of the image data. WidthOF = HeightI,
+                % HeightOF = WidthI
+                % Thus we need to swap X and Y coordinate here
                 if (currentFrameIndex>nextFrameIndex)
                     k = (currentFrameIndex-1)*(currentFrameIndex-2)/2 + nextFrameIndex;    
-                    flowX = flowsData(currentPositionX,currentPositionY,1,k);
-                    flowY = flowsData(currentPositionX,currentPositionY,2,k);
+                    flowX = flowsData(currentPositionY,currentPositionX,1,k);
+                    flowY = flowsData(currentPositionY,currentPositionX,2,k);
                     
                 elseif (currentFrameIndex<nextFrameIndex)
                     
                     k = (nextFrameIndex-1)*(nextFrameIndex-2)/2+currentFrameIndex;
-                    flowX = -flowsData(currentPositionX,currentPositionY,1,k);
-                    flowY = -flowsData(currentPositionX,currentPositionY,2,k);
+                    flowX = -flowsData(currentPositionY,currentPositionX,1,k);
+                    flowY = -flowsData(currentPositionY,currentPositionX,2,k);
                     
                 else
                     flowX = 0;
                     flowY = 0;
                 end
-                currentLocation = currentLocation + [flowY, flowX];
+                currentLocation = currentLocation + [flowX, flowY];
             end   
             
             %
@@ -52,6 +56,6 @@ function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, end
     
     [~, closestIndex] = min(advectedDistance);
     
-    closestX = positionFlowValue(closestIndex,2);
-    closestY = positionFlowValue(closestIndex,1);
+    closestX = positionFlowValue(closestIndex,1);
+    closestY = positionFlowValue(closestIndex,2);
 end
