@@ -16,9 +16,8 @@ tic
     end
   
     % Extract frames using index
-    [h,w,c,~] = size(sourceImageSequence);
-    
-    outputImageSequence = zeros(h, w, c, length(outputIndex));
+    [height,width,channel,~] = size(sourceImageSequence);
+    outputImageSequence = zeros(height, width, channel, length(outputIndex));
     for f = 1:length(outputIndex)
        outputImageSequence(:,:,:,f) = sourceImageSequence(:,:,:,outputIndex(f)); 
     end  

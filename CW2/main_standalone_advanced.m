@@ -1,4 +1,4 @@
-clearvars -except flowsFile flowsData imageSequence distanceMatrix distanceMatrixAdvanced;
+clearvars -except flowsFile flowsData imageSequence distanceMatrixAdvanced distanceMatrix;
 clc;
 warning('off','all');
 
@@ -42,10 +42,10 @@ imageCount = last - first + 1;
 % 1. Compute a Distance Matrix that encodes the similarity in appearance
 % between all the frames in the collection.
 
-if (exist('distanceMatrix','var') == 0)
-    distanceMatrix = ComputeDistanceMatrix(imageSequence);
+if (exist('distanceMatrixAdvanced','var') == 0)
+    distanceMatrixAdvanced = ComputeDistanceMatrixAdvanced(imageSequence, flowsData);
 else
-    disp("@Distance Matrix Already Calculated");
+    disp("@Advanced Distance Matrix Already Calculated");
 end
 
 % figure;
@@ -57,8 +57,8 @@ end
 % title("Probability Matrix");
 % imshow(probabilityMatrix);
 
-[w,h] = size(distanceMatrix);
-connectionMatrix = distanceMatrix;
+[w,h] = size(distanceMatrixAdvanced);
+connectionMatrix = distanceMatrixAdvanced;
 
 % 2. Convert the Distance Matrix into a graph.
 for i = 1:w-1   
@@ -74,7 +74,7 @@ for i = 1:w-1
     end
 end
 
-sparseDistanceMatrix = sparse(connectionMatrix);
+sparseDistanceMatrix = sparse(distanceMatrixAdvanced);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
 
@@ -106,24 +106,24 @@ end
 % 4. Compute the advected location of point s in every other node, using
 % optical flow.
 
-EstimatedClosestAdvLoc = zeros(pointCount-1,2);
+EstimatedClosestAdvLoc = zeros(pointCount,2);
 % EstimatedClosestAdvLoc = [pathX, pathY]
 EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
 imageSequenceIndex = [];
 
 disp("@Compute Shortest Path");
 tic  
-    for i = 1:pointCount-1
-        
+    for i = 1:pointCount
         currentAdvLoc = [pathY(i),pathX(i)];
-        nextAdvLoc = [pathY(i+1),pathX(i+1)]; 
-
+        %nextAdvLoc = [pathY(i+1),pathX(i+1)]; 
+        if (i+1>pointCount)
+           nextAdvLoc = [pathY(i),pathX(i)];
+        else
+           nextAdvLoc = [pathY(i+1),pathX(i+1)]; 
+        end
         [closestIndex,closestX, closestY] = ComputeShortestPath(currentAdvLoc, nextAdvLoc, paths, flowsData);
-        
-        closestPaths{i} = paths{closestIndex};  
-        
-        EstimatedClosestAdvLoc(i+1,:)=[closestX, closestY];
-        
+        closestPaths{i} = paths{closestIndex};        
+        EstimatedClosestAdvLoc(i,:)=[closestX, closestY];
         [~,paths,~] = graphshortestpath(sparseDistanceMatrix,closestIndex);
     end
 toc

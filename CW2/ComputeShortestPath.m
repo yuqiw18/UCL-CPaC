@@ -1,10 +1,11 @@
 function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, endPoint, paths, flowsData)
 
-    last_pixs = zeros(length(paths),2);
+    pathCount = length(paths);
+    positionFlowValue = zeros(pathCount,2);
     
-    for i = 1:length(paths)
+    for i = 1:pathCount
         
-        currentPath = paths{i};
+        currentPath = paths{i};   
         currentLocation = startPoint;
         
         if length(currentPath)>1
@@ -14,18 +15,21 @@ function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, end
                 currentFrameIndex = currentPath(f);
                 nextFrameIndex = currentPath(f+1);
                 
-                current_pos = round(currentLocation);    
+                currentPosition = round(currentLocation); 
+                
+                currentPositionX = currentPosition(1);
+                currentPositionY = currentPosition(2);
                  
                 if (currentFrameIndex>nextFrameIndex)
                     k = (currentFrameIndex-1)*(currentFrameIndex-2)/2 + nextFrameIndex;    
-                    flowX = flowsData(current_pos(1),current_pos(2),1,k);
-                    flowY = flowsData(current_pos(1),current_pos(2),2,k);
+                    flowX = flowsData(currentPositionX,currentPositionY,1,k);
+                    flowY = flowsData(currentPositionX,currentPositionY,2,k);
                     
                 elseif (currentFrameIndex<nextFrameIndex)
                     
                     k = (nextFrameIndex-1)*(nextFrameIndex-2)/2+currentFrameIndex;
-                    flowX = -flowsData(current_pos(1),current_pos(2),1,k);
-                    flowY = -flowsData(current_pos(1),current_pos(2),2,k);
+                    flowX = -flowsData(currentPositionX,currentPositionY,1,k);
+                    flowY = -flowsData(currentPositionX,currentPositionY,2,k);
                     
                 else
                     flowX = 0;
@@ -34,19 +38,20 @@ function [closestIndex,closestX, closestY] = ComputeShortestPath(startPoint, end
                 currentLocation = currentLocation + [flowY, flowX];
             end   
             
-            last_pixs(i,:) = currentLocation;
+            %
+            positionFlowValue(i,:) = currentLocation;
             
-        else
+        else 
             
-            last_pixs(i,:) = currentLocation;
-            
+            %
+            positionFlowValue(i,:) = currentLocation;          
         end    
     end
     
-    dist_toExpect = sqrt(sum((last_pixs-repmat(endPoint,length(paths),1)).^2,2)); 
+    advectedDistance = sqrt(sum((positionFlowValue-repmat(endPoint,length(paths),1)).^2,2)); 
     
-    [min_dist, closestIndex] = min(dist_toExpect);
+    [~, closestIndex] = min(advectedDistance);
     
-    closestX = last_pixs(closestIndex,2);
-    closestY = last_pixs(closestIndex,1);
+    closestX = positionFlowValue(closestIndex,2);
+    closestY = positionFlowValue(closestIndex,1);
 end
