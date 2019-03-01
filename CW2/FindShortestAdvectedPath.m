@@ -1,23 +1,25 @@
-function [closestIndex, closestX, closestY] = ComputeShortestPath(startPoint, endPoint, paths, flowsData)
+function [closestIndex, closestX, closestY] = FindShortestAdvectedPath(startPoint, endPoint, paths, flowsData)
 
     pathCount = length(paths);
+    
     positionFlowValue = zeros(pathCount,2);
     
     for i = 1:pathCount
         
-        currentPath = paths{i};   
+        currentPath = paths{i};  
+        
         currentLocation = startPoint;
         
         if length(currentPath)>1
             
             for f=1:length(currentPath)-1
                 
-                currentFrameIndex = currentPath(f);
+                currentFrameIndex = currentPath(f);       
                 nextFrameIndex = currentPath(f+1);
                 
                 currentPosition = round(currentLocation); 
                 
-                currentPositionX = currentPosition(1);
+                currentPositionX = currentPosition(1);         
                 currentPositionY = currentPosition(2);
                 
                 % The width and height of optical flow is actually the
@@ -39,6 +41,7 @@ function [closestIndex, closestX, closestY] = ComputeShortestPath(startPoint, en
                     flowX = 0;
                     flowY = 0;
                 end
+                
                 currentLocation = currentLocation + [flowX, flowY];
             end   
             
@@ -52,10 +55,16 @@ function [closestIndex, closestX, closestY] = ComputeShortestPath(startPoint, en
         end    
     end
     
-    advectedDistance = sqrt(sum((positionFlowValue-repmat(endPoint,length(paths),1)).^2,2)); 
+    % Find closest advected position
+    advectedDistances = zeros(pathCount,1);
+    for i = 1:pathCount 
+        advectedDistances(i) = sqrt(sum((positionFlowValue(i,:)-endPoint).^2,'all'));
+    end
     
-    [~, closestIndex] = min(advectedDistance);
+    [~, closestIndex] = min(advectedDistances);
     
     closestX = positionFlowValue(closestIndex,1);
     closestY = positionFlowValue(closestIndex,2);
+    
+    disp(closestIndex);
 end

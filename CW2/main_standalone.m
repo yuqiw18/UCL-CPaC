@@ -57,23 +57,8 @@ end
 % title("Probability Matrix");
 % imshow(probabilityMatrix);
 
-[w,h] = size(distanceMatrix);
-connectionMatrix = distanceMatrix;
-
 % 2. Convert the Distance Matrix into a graph.
-for i = 1:w-1   
-    average = sum(connectionMatrix(i,i:w),'all')/(w-i);  
-    %disp(average);
-    for j = i:w
-        if (connectionMatrix(i,j)>average)
-            connectionMatrix(i,j)=0;
-        end
-        if (connectionMatrix(j,i)>average)
-            connectionMatrix(j,i)=0;
-        end
-    end
-end
-
+connectionMatrix = DistanceMatrixRejection(distanceMatrix);
 sparseDistanceMatrix = sparse(connectionMatrix);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
@@ -102,27 +87,29 @@ end
 
 % 3. For each node in the graph, compute the shortest path.
 [~,paths,~] = graphshortestpath(sparseDistanceMatrix,selectedImageIndex);
+[S, ~] = graphconncomp(sparseDistanceMatrix, 'Weak', true);
 
 % 4. Compute the advected location of point s in every other node, using
 % optical flow.
 
 EstimatedClosestAdvLoc = zeros(pointCount-1,2);
 % EstimatedClosestAdvLoc = [pathX, pathY]
+
 EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
-imageSequenceIndex = [];
 
-disp("@Compute Shortest Path");
+disp("@Compute Shortest Advected Path");
 tic  
-    for i = 1:pointCount-1
+    for i = 1:pointCount-1 
         
-        currentAdvLoc = [pathX(i),pathY(i)];
+        currentAdvLoc = [pathX(i),pathY(i)];   
         nextAdvLoc = [pathX(i+1),pathY(i+1)]; 
-
-        [closestIndex,closestX, closestY] = ComputeShortestPath(currentAdvLoc, nextAdvLoc, paths, flowsData);
         
-        closestPaths{i} = paths{closestIndex};  
         
-        EstimatedClosestAdvLoc(i+1,:)=[closestX, closestY];
+        [closestIndex,closestX, closestY] = FindShortestAdvectedPath(currentAdvLoc, nextAdvLoc, paths, flowsData);   
+        
+        closestPaths{i} = paths{closestIndex};   
+        
+        EstimatedClosestAdvLoc(i+1,:)=[closestX, closestY];  
         
         [~,paths,~] = graphshortestpath(sparseDistanceMatrix,closestIndex);
     end
@@ -141,7 +128,6 @@ hold off;
 % Render this path as the output image sequence for this user-drawn segment.
 outputImageSequence = ConvertPathsToImageSequence(closestPaths, imageSequence);
 implay(outputImageSequence);
-
 
 save_sequence_color(outputImageSequence,outputPath,'output_',0,4);
 
