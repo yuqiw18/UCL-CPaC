@@ -14,7 +14,7 @@ outputPath = 'output';
 %% Initialisation
 % Load Optical Flow
 if (exist('flowsFile','var') == 0)
-    disp("@Load Optical Flow Data");
+    disp("@Loading Optical Flow Data");
     tic  
         flowsFile = load('flow/flows.mat');
         flowsData = flowsFile.flows_a;
@@ -25,7 +25,7 @@ end
 
 %Load Image Sequence
 if (exist('imageSequence','var') == 0)
-    disp("@Load Image Sequence");
+    disp("@Loading Image Sequence");
     tic  
         rawImageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);
         imageSequence = imresize(rawImageSequence, 0.3);
@@ -49,7 +49,12 @@ end
 
 % 2. Convert the Distance Matrix into a graph.
 
-connectionMatrix = DistanceMatrixRejection(distanceMatrix);
+
+connectionMatrix = distanceMatrix;
+connectionMatrix(connectionMatrix > mean(connectionMatrix(:))) = 0;
+%connectionMatrix = DistanceMatrixRejection(distanceMatrix);
+
+imshow(connectionMatrix);
 sparseDistanceMatrix = sparse(connectionMatrix);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
@@ -123,6 +128,8 @@ hold off;
 outputImageSequence = ConvertPathsToImageSequence(closestPaths, imageSequence);
 implay(outputImageSequence);
 
-save_sequence_color(outputImageSequence,outputPath,'output_',0,4);
+outputImageSequence = imresize(outputImageSequence, [300 400]);
+
+save_sequence_color(outputImageSequence,outputPath,'output_basic_',0,4);
 
 
