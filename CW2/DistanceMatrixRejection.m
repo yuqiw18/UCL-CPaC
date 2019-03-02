@@ -1,6 +1,6 @@
 function distanceMatrix = DistanceMatrixRejection(rawDistanceMatrix)
     
-    valueNumberToKeep = 8;
+    valueNumberToKeep = 6;
     [N,~] = size(rawDistanceMatrix);
     
     distanceMatrix = zeros(size(rawDistanceMatrix));
@@ -19,11 +19,19 @@ function distanceMatrix = DistanceMatrixRejection(rawDistanceMatrix)
         
     end
 
+    % Make the matrix symmetric (two-way tracing)
     for i = 1:N
         for j = 1:N
-            distanceMatrix(j,i) = distanceMatrix(i,j);
+            
+            if (distanceMatrix(j,i)==0 && distanceMatrix(i,j) ~=0)
+                distanceMatrix(j,i) = distanceMatrix(i,j);
+                
+            elseif (distanceMatrix(j,i)~=0 && distanceMatrix(i,j) ==0)
+                distanceMatrix(i,j) = distanceMatrix(j,i);
+            else
+                
+            end
         end 
     end
-    
-    imshow(distanceMatrix);
+
 end

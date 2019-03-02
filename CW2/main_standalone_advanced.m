@@ -58,23 +58,10 @@ end
 % imshow(probabilityMatrix);
 
 [w,h] = size(distanceMatrixAdvanced);
-connectionMatrix = distanceMatrixAdvanced;
 
 % 2. Convert the Distance Matrix into a graph.
-for i = 1:w-1   
-    average = sum(connectionMatrix(i,i:w),'all')/(w-i);  
-    %disp(average);
-    for j = i:w
-        if (connectionMatrix(i,j)>average)
-            connectionMatrix(i,j)=0;
-        end
-        if (connectionMatrix(j,i)>average)
-            connectionMatrix(j,i)=0;
-        end
-    end
-end
-
-sparseDistanceMatrix = sparse(distanceMatrixAdvanced);
+connectionMatrix = DistanceMatrixRejection(distanceMatrixAdvanced);
+sparseDistanceMatrix = sparse(connectionMatrix);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
 
@@ -107,23 +94,17 @@ end
 % optical flow.
 
 EstimatedClosestAdvLoc = zeros(pointCount,2);
-% EstimatedClosestAdvLoc = [pathX, pathY]
 EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
-imageSequenceIndex = [];
 
-disp("@Compute Shortest Path");
+disp("@Compute Closest Advected Path");
 tic  
-    for i = 1:pointCount
-        currentAdvLoc = [pathY(i),pathX(i)];
-        %nextAdvLoc = [pathY(i+1),pathX(i+1)]; 
-        if (i+1>pointCount)
-           nextAdvLoc = [pathY(i),pathX(i)];
-        else
-           nextAdvLoc = [pathY(i+1),pathX(i+1)]; 
-        end
-        [closestIndex,closestX, closestY] = ComputeShortestPath(currentAdvLoc, nextAdvLoc, paths, flowsData);
-        closestPaths{i} = paths{closestIndex};        
-        EstimatedClosestAdvLoc(i,:)=[closestX, closestY];
+    for i = 1:pointCount-1    
+        startPoint = [pathX(i),pathY(i)];   
+        endPoint = [pathX(i+1),pathY(i+1)]; 
+        advectedPositionValue = ComputeAdvectedPosition(startPoint, paths, flowsData);      
+        [closestIndex, closestPoint] = FindClosestPoint(endPoint, advectedPositionValue); 
+        EstimatedClosestAdvLoc(i+1,:)= closestPoint;   
+        closestPaths{i} = paths{closestIndex};   
         [~,paths,~] = graphshortestpath(sparseDistanceMatrix,closestIndex);
     end
 toc
@@ -142,7 +123,6 @@ hold off;
 outputImageSequence = ConvertPathsToImageSequence(closestPaths, imageSequence);
 implay(outputImageSequence);
 
-
-save_sequence_color(outputImageSequence,outputPath,'output_',0,4);
+save_sequence_color(outputImageSequence,outputPath,'output_adv_',0,4);
 
 
