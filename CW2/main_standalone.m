@@ -131,5 +131,3 @@ implay(outputImageSequence);
 outputImageSequence = imresize(outputImageSequence, [300 400]);
 
 save_sequence_color(outputImageSequence,outputPath,'output_basic_',0,4);
-
-
