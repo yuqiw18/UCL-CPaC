@@ -37,9 +37,9 @@ end
 
 imageCount = last - first + 1;
 
-%% Basic Section
-% 1. Compute a Distance Matrix that encodes the similarity in appearance
-% between all the frames in the collection.
+%% 
+% 1. Compute a better distance matrix that takes both image difference and
+% trajectory-similarity into account
 if (exist('distanceMatrixAdvanced','var') == 0)
     distanceMatrixAdvanced = ComputeDistanceMatrixAdvanced(imageSequence, flowsData);
 else
@@ -79,11 +79,12 @@ pointCount = 6;
 pathX = [274.9535073409462,237.3678629690049,224.8393148450244,227.1884176182708,247.5473083197390,289.8311582381729];
 pathY = [151.9192495921696,154.2683523654159,169.1460032626427,189.5048939641109,206.7316476345840,204.3825448613376];
 
-% 3. For each node in the graph, compute the shortest path.
+% 3. Compute the shortest path for start point.
+% In the iteration compute the shortest path for each node in the graph.
 [~,paths,~] = graphshortestpath(sparseDistanceMatrix,selectedImageIndex);
 
-% 4. Compute the advected location of point s in every other node, using
-% optical flow.
+% 4,5. Compute the advected location of point s in every other node, using
+% optical flow. Pick the path in Paths whose advected location comes closest to the selected point. 
 
 EstimatedClosestAdvLoc = zeros(pointCount,2);
 EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
@@ -111,11 +112,10 @@ hold on;
 plot(EstimatedClosestAdvLoc(:,1), EstimatedClosestAdvLoc(:,2), 'ro-');
 hold off;
 
-% 5. Pick the path in Paths whose advected location comes closest to the selected point. 
 % Render this path as the output image sequence for this user-drawn segment.
 [outputIndex, outputImageSequence] = ConvertPathsToImageSequence(closestPaths, imageSequence);
 
-%Interpolated frames
+% Interpolate slow motion
 frame = 6;
 outputIndexInterpolated = frame * (length(outputIndex)-1) + length(outputIndex);
 % e.g. F-123456-F-123456-F-123456-F
@@ -155,6 +155,9 @@ disp("@Performing Motion Interpolation");
 toc
 
 implay(interpolatedImageSequence);
+
+% Save the result
+interpolatedImageSequence = imresize(interpolatedImageSequence, [300 400]);
 save_sequence_color(interpolatedImageSequence,outputPath,'output_adv_',0,4);
 
 

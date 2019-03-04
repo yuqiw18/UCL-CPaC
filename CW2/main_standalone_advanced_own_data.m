@@ -72,11 +72,12 @@ while(pointCount<5)
     end
 end
 
-% 3. For each node in the graph, compute the shortest path.
+% 3. Compute the shortest path for start point.
+% In the iteration compute the shortest path for each node in the graph.
 [~,paths,~] = graphshortestpath(sparseDistanceMatrix,selectedImageIndex);
 
-% 4. Compute the advected location of point s in every other node, using
-% optical flow.
+% 4,5. Compute the advected location of point s in every other node, using
+% optical flow. Pick the path in Paths whose advected location comes closest to the selected point. 
 
 EstimatedClosestAdvLoc = zeros(pointCount,2);
 EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
@@ -104,11 +105,10 @@ hold on;
 plot(EstimatedClosestAdvLoc(:,1), EstimatedClosestAdvLoc(:,2), 'ro-');
 hold off;
 
-% 5. Pick the path in Paths whose advected location comes closest to the selected point. 
 % Render this path as the output image sequence for this user-drawn segment.
 [outputIndex, outputImageSequence] = ConvertPathsToImageSequence(closestPaths, imageSequence);
 
-%Interpolated frames
+% Interpolate slow motion
 frame = 6;
 outputIndexInterpolated = frame * (length(outputIndex)-1) + length(outputIndex);
 % e.g. F-123456-F-123456-F-123456-F
@@ -145,6 +145,9 @@ end
 interpolatedImageSequence(:,:,:,outputIndexInterpolated) = imageSequence(:,:,:,outputIndex(length(outputIndex)));
 
 implay(interpolatedImageSequence);
-save_sequence_color(interpolatedImageSequence,outputPath,'output_adv_',0,4);
+
+% Save the result
+interpolatedImageSequence = imresize(interpolatedImageSequence, [300 400]);
+save_sequence_color(interpolatedImageSequence,outputPath,'output_adv_od_',0,4);
 
 

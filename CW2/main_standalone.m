@@ -63,15 +63,19 @@ end
 
 % Define a curve
 imshow(imageSequence(:,:,:,selectedImageIndex)),title('Draw a path with at least 5 points');
-pointCount = 0;
-while(pointCount<5)
-    [pathX, pathY]=getline();
-    pointCount=size(pathX,1);
-    if(pointCount<5)
-        % Ask user to draw again if not enough points are collected
-        imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
-    end
-end
+% pointCount = 0;
+% while(pointCount<5)
+%     [pathX, pathY]=getline();
+%     pointCount=size(pathX,1);
+%     if(pointCount<5)
+%         % Ask user to draw again if not enough points are collected
+%         imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
+%     end
+% end
+
+pointCount = 6;
+pathX = [274.9535073409462,237.3678629690049,224.8393148450244,227.1884176182708,247.5473083197390,289.8311582381729];
+pathY = [151.9192495921696,154.2683523654159,169.1460032626427,189.5048939641109,206.7316476345840,204.3825448613376];
 
 % 3. Compute the shortest path for start point.
 % In the iteration compute the shortest path for each node in the graph.
