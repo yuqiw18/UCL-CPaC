@@ -1,4 +1,4 @@
-% Generate optical flow from given images
+% Standalone function for generating optical flow from own data (For Windows x64)
 %% Image parameters
 path = 'mydata';
 prefix = 'mydata_';

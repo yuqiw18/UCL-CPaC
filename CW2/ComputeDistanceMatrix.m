@@ -1,5 +1,7 @@
+% Function for computing the distance matrix (basic)
+% Basic distance matrix only takes the image difference into account.
 function distanceMatrix = ComputeDistanceMatrix(imageSequence)
-disp("@Compute Distance Matrix");
+disp("@Computing Distance Matrix");
 tic  
     [~, ~, ~, f] = size(imageSequence);
     distanceMatrix = zeros(f, f);

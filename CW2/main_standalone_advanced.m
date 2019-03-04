@@ -14,7 +14,7 @@ outputPath = 'output';
 %% Initialisation
 % Load Optical Flow
 if (exist('flowsFile','var') == 0)
-    disp("@Load Optical Flow Data");
+    disp("@Loading Optical Flow Data");
     tic  
         flowsFile = load('flow/flows.mat');
         flowsData = flowsFile.flows_a;
@@ -25,18 +25,17 @@ end
 
 %Load Image Sequence
 if (exist('imageSequence','var') == 0)
-    disp("@Load Image Sequence");
+    disp("@Loading Image Sequence");
     tic  
         rawImageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);
+        % Downscale image size to 30% to match optical flow used in later stage
         imageSequence = imresize(rawImageSequence, 0.3);
     toc
 else
     disp("@Image Sequence Already Loaded");
 end
-% Downsize image size to 30% to match optical flow used in later stage
 
 imageCount = last - first + 1;
-% imageCount = size(imageSequence,4);
 
 %% Basic Section
 % 1. Compute a Distance Matrix that encodes the similarity in appearance
@@ -55,9 +54,8 @@ sparseDistanceMatrix = sparse(connectionMatrix);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
 
-% graph = graphminspantree(sparseDistanceMatrix);
-
 % User input
+% Specify the start frame
 selectedImageIndex = input('Please specify the frame index to start:');
 if (selectedImageIndex < first || selectedImageIndex > last)
     disp('@Invalid Frame: Default - First Frame')
@@ -90,7 +88,7 @@ pathY = [151.9192495921696,154.2683523654159,169.1460032626427,189.5048939641109
 EstimatedClosestAdvLoc = zeros(pointCount,2);
 EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
 
-disp("@Compute Closest Advected Path");
+disp("@Computing Closest Advected Path");
 tic  
     for i = 1:pointCount-1    
         startPoint = [pathX(i),pathY(i)];   
@@ -103,6 +101,7 @@ tic
     end
 toc
 
+% Show selected points and estimated points
 close all;
 figure;
 imshow(imageSequence(:,:,:,selectedImageIndex));
@@ -125,32 +124,35 @@ outputIndexInterpolated = frame * (length(outputIndex)-1) + length(outputIndex);
 [height,width,channel,~] = size(outputImageSequence);
 interpolatedImageSequence = zeros(height,width,channel,outputIndexInterpolated);
 
-for i = 1: length(outputIndex)-1
-    
-    currentFrameIndex = outputIndex(i);
-    nextFrameIndex = outputIndex(i+1);
-    
-    currentFrame = imageSequence(:,:,:,currentFrameIndex);
-    nextFrame = imageSequence(:,:,:,nextFrameIndex);
-    
-    % Get the optical flow between the current frame and the next frame
-    % Since the previous step has removed duplicated connecting frames
-    % currentFrameIndex will never be the same as nextFrameIndex
-    if (currentFrameIndex > nextFrameIndex)
-        k = (currentFrameIndex - 1)*(currentFrameIndex - 2)/2 + nextFrameIndex;
-        flow = flowsData(:,:,:,k);
-    else
-        k = (nextFrameIndex - 1)*(nextFrameIndex - 2)/2 + currentFrameIndex;
-        flow = -flowsData(:,:,:,k);
+disp("@Performing Motion Interpolation");
+    tic  
+    for i = 1: length(outputIndex)-1
+
+        currentFrameIndex = outputIndex(i);
+        nextFrameIndex = outputIndex(i+1);
+
+        currentFrame = imageSequence(:,:,:,currentFrameIndex);
+        nextFrame = imageSequence(:,:,:,nextFrameIndex);
+
+        % Get the optical flow between the current frame and the next frame
+        % Since the previous step has removed duplicated connecting frames
+        % currentFrameIndex will never be the same as nextFrameIndex
+        if (currentFrameIndex > nextFrameIndex)
+            k = (currentFrameIndex-1)*(currentFrameIndex-2)/2+nextFrameIndex;
+            flow = flowsData(:,:,:,k);
+        else
+            k = (nextFrameIndex-1)*(nextFrameIndex-2)/2+currentFrameIndex;
+            flow = -flowsData(:,:,:,k);
+        end
+
+        interpolatedImage = MotionInterpolation(currentFrame,nextFrame,flow,frame);
+        interpolatedImageSequence(:,:,:,(i-1)*(frame+1)+1) = currentFrame;
+        for f = 1:frame
+            interpolatedImageSequence(:,:,:,(i-1)*(frame+1)+1+f) = interpolatedImage(:,:,:,f);
+        end    
     end
-    
-    interpolatedImage = MotionInterpolation(currentFrame,nextFrame,flow,frame);
-    interpolatedImageSequence(:,:,:,(i-1)*(frame+1)+1) = currentFrame;
-    for f = 1:frame
-        interpolatedImageSequence(:,:,:,(i-1)*(frame+1)+1+f) = interpolatedImage(:,:,:,f);
-    end    
-end
-interpolatedImageSequence(:,:,:,outputIndexInterpolated) = imageSequence(:,:,:,outputIndex(length(outputIndex)));
+    interpolatedImageSequence(:,:,:,outputIndexInterpolated) = imageSequence(:,:,:,outputIndex(length(outputIndex)));
+toc
 
 implay(interpolatedImageSequence);
 save_sequence_color(interpolatedImageSequence,outputPath,'output_adv_',0,4);

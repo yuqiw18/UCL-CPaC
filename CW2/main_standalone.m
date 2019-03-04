@@ -1,4 +1,3 @@
-% Basic section
 clearvars -except flowsFile flowsData imageSequence distanceMatrix distanceMatrixAdvanced;
 clc;
 warning('off','all');
@@ -25,19 +24,19 @@ else
 end
 
 %Load Image Sequence
+
 if (exist('imageSequence','var') == 0)
     disp("@Loading Image Sequence");
     tic  
         rawImageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);
+        % Downscale image size to 30% to match optical flow used in later stage
         imageSequence = imresize(rawImageSequence, 0.3);
     toc
 else
     disp("@Image Sequence Already Loaded");
 end
-% Downsize image size to 30% to match optical flow used in later stage
 
 imageCount = last - first + 1;
-% imageCount = size(imageSequence,4);
 
 %% Basic Section
 % 1. Compute a Distance Matrix that encodes the similarity in appearance
@@ -50,7 +49,6 @@ end
 
 % 2. Convert the Distance Matrix into a graph.
 connectionMatrix = DistanceMatrixRejection(distanceMatrix);
-imshow(connectionMatrix);
 sparseDistanceMatrix = sparse(connectionMatrix);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
@@ -65,27 +63,22 @@ end
 
 % Define a curve
 imshow(imageSequence(:,:,:,selectedImageIndex)),title('Draw a path with at least 5 points');
-% pointCount = 0;
-% while(pointCount<5)
-%     [pathX, pathY]=getline();
-%     pointCount=size(pathX,1);
-%     if(pointCount<5)
-%         % Ask user to draw again if not enough points are collected
-%         imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
-%     end
-% end
+pointCount = 0;
+while(pointCount<5)
+    [pathX, pathY]=getline();
+    pointCount=size(pathX,1);
+    if(pointCount<5)
+        % Ask user to draw again if not enough points are collected
+        imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
+    end
+end
 
-pointCount = 6;
-pathX = [274.9535073409462,237.3678629690049,224.8393148450244,227.1884176182708,247.5473083197390,289.8311582381729];
-pathY = [151.9192495921696,154.2683523654159,169.1460032626427,189.5048939641109,206.7316476345840,204.3825448613376];
-
-
-% 3. For each node in the graph, compute the shortest path.
+% 3. Compute the shortest path for start point.
+% In the iteration compute the shortest path for each node in the graph.
 [~,paths,~] = graphshortestpath(sparseDistanceMatrix,selectedImageIndex);
-[S, ~] = graphconncomp(sparseDistanceMatrix, 'Weak', true);
 
-% 4. Compute the advected location of point s in every other node, using
-% optical flow.
+% 4,5. Compute the advected location of point s in every other node, using
+% optical flow. Pick the path in Paths whose advected location comes closest to the selected point. 
 
 EstimatedClosestAdvLoc = zeros(pointCount-1,2);
 EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
@@ -98,11 +91,12 @@ tic
         advectedPositionValue = ComputeAdvectedPosition(startPoint, paths, flowsData); 
         [closestIndex, closestPoint] = FindClosestPoint(endPoint, advectedPositionValue); 
         EstimatedClosestAdvLoc(i+1,:)= closestPoint;  
-        closestPaths{i} = paths{closestIndex};   
+        closestPaths{i} = paths{closestIndex};
         [~,paths,~] = graphshortestpath(sparseDistanceMatrix,closestIndex);
     end
 toc
 
+% Show selected points and estimated points
 close all;
 figure;
 imshow(imageSequence(:,:,:,selectedImageIndex));
@@ -112,7 +106,6 @@ hold on;
 plot(EstimatedClosestAdvLoc(:,1), EstimatedClosestAdvLoc(:,2), 'ro-');
 hold off;
 
-% 5. Pick the path in Paths whose advected location comes closest to the selected point. 
 % Render this path as the output image sequence for this user-drawn segment.
 [~, outputImageSequence] = ConvertPathsToImageSequence(closestPaths, imageSequence);
 implay(outputImageSequence);

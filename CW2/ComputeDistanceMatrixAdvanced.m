@@ -1,15 +1,20 @@
+% Function for computing the distance matrix (advanced)
 % Advanced distance matrix calculation that takes both image-difference and 
 % trajectory-similiarity into consideration.
 function distanceMatrix = ComputeDistanceMatrixAdvanced(imageSequence, flowsData)
-    
+disp("@Computing Distance Matrix (Advanced)");
+tic      
     [height, width, ~, f] = size(imageSequence);
-    distanceMatrix = zeros(f,f);
     imageDifference = zeros(f,f);
     trajectorySimiliarity = zeros(f,f);
+    
     % Construct distance matrix
     for i=1:f
         for j=1:f
+            % Compute image difference between two frames
             imageDifference(i,j) = sqrt(sum((imageSequence(:,:,:,i) - imageSequence(:,:,:,j)).^2,'all'));     
+            
+            % Compute trajectory-similarity between two frames
             if (i ~= j)
                  if (i > j)
                     k = (i-1)*(i-2)/2+j;
@@ -21,11 +26,14 @@ function distanceMatrix = ComputeDistanceMatrixAdvanced(imageSequence, flowsData
             else
                 flow = zeros(size(flowsData(:,:,:,1)));
             end
-            trajectorySimiliarity(i,j) = sqrt(sum(flow(:,:,1).^2 + flow(:,:,2).^2,'all'));          
+            trajectorySimiliarity(i,j) = sqrt(sum(flow(:,:,1).^2 + flow(:,:,2).^2,'all'));   
         end
     end
-    % Normalise
+    
+    % Normalise and distribute to the distance matrix
     imageDifference = imageDifference/max(imageDifference(:));
     trajectorySimiliarity = trajectorySimiliarity/max(trajectorySimiliarity(:));
-    distanceMatrix = 2 * imageDifference + trajectorySimiliarity;
+    distanceMatrix = imageDifference + trajectorySimiliarity;
+    distanceMatrix = distanceMatrix/max(distanceMatrix(:));
+toc
 end

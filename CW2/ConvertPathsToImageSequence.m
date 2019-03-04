@@ -1,6 +1,7 @@
-% Generate image sequence from given paths (no duplication between 2 frames)
+% Function for generating image from given paths (no duplication between 2
+% frames) and index list as well
 function [outputIndex, outputImageSequence] = ConvertPathsToImageSequence(paths, sourceImageSequence)
-disp("@Convert Paths to Image Sequence");
+disp("@Converting Paths to Image Sequence");
 tic  
     % Convert paths to index
     outputIndex = [];
