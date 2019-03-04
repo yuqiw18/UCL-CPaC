@@ -1,3 +1,4 @@
+% Basic section
 clearvars -except flowsFile flowsData imageSequence distanceMatrix distanceMatrixAdvanced;
 clc;
 warning('off','all');
@@ -91,25 +92,13 @@ EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
 
 disp("@Compute Closest Advected Path");
 tic  
-    for i = 1:pointCount-1 
-        
-%         % Swap X, Y 
-%         startPoint = [pathY(i),pathX(i)];   
-%         endPoint = [pathY(i+1),pathX(i+1)];    
-%         [closestIndex, closestX, closestY] = FindShortestAdvectedPath(startPoint, endPoint, paths, flowsData);
-%         EstimatedClosestAdvLoc(i+1,:)= [closestX, closestY];
-        
+    for i = 1:pointCount-1  
         startPoint = [pathX(i),pathY(i)];   
         endPoint = [pathX(i+1),pathY(i+1)]; 
-        
         advectedPositionValue = ComputeAdvectedPosition(startPoint, paths, flowsData); 
-        
         [closestIndex, closestPoint] = FindClosestPoint(endPoint, advectedPositionValue); 
-        
         EstimatedClosestAdvLoc(i+1,:)= closestPoint;  
-        
         closestPaths{i} = paths{closestIndex};   
-        
         [~,paths,~] = graphshortestpath(sparseDistanceMatrix,closestIndex);
     end
 toc
