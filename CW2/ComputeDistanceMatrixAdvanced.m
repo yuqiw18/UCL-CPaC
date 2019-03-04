@@ -4,11 +4,12 @@ function distanceMatrix = ComputeDistanceMatrixAdvanced(imageSequence, flowsData
     
     [height, width, ~, f] = size(imageSequence);
     distanceMatrix = zeros(f,f);
-    
+    imageDifference = zeros(f,f);
+    trajectorySimiliarity = zeros(f,f);
     % Construct distance matrix
     for i=1:f
         for j=1:f
-            imageDifference = sqrt(sum((imageSequence(:,:,:,i) - imageSequence(:,:,:,j)).^2,'all'));     
+            imageDifference(i,j) = sqrt(sum((imageSequence(:,:,:,i) - imageSequence(:,:,:,j)).^2,'all'));     
             if (i ~= j)
                  if (i > j)
                     k = (i-1)*(i-2)/2+j;
@@ -20,11 +21,11 @@ function distanceMatrix = ComputeDistanceMatrixAdvanced(imageSequence, flowsData
             else
                 flow = zeros(size(flowsData(:,:,:,1)));
             end
-            trajectorySimiliarity = sqrt(sum(flow(:,:,1).^2 + flow(:,:,2).^2,'all'));          
-            distanceMatrix(i,j) = imageDifference + trajectorySimiliarity;
+            trajectorySimiliarity(i,j) = sqrt(sum(flow(:,:,1).^2 + flow(:,:,2).^2,'all'));          
         end
     end
-    
     % Normalise
-    distanceMatrix = distanceMatrix/max(distanceMatrix(:));
+    imageDifference = imageDifference/max(imageDifference(:));
+    trajectorySimiliarity = trajectorySimiliarity/max(trajectorySimiliarity(:));
+    distanceMatrix = 2 * imageDifference + trajectorySimiliarity;
 end

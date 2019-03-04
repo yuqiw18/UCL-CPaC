@@ -3,7 +3,7 @@ clearvars -except flowsFile flowsData imageSequence distanceMatrix distanceMatri
 clc;
 warning('off','all');
 
-%% Setup
+% Setup
 path = 'data';
 prefix = 'gjbLookAtTarget_';
 first = 0;
@@ -12,7 +12,7 @@ digits = 4;
 suffix = 'jpg';
 outputPath = 'output';
 
-%% Initialisation
+% Initialisation
 % Load Optical Flow
 if (exist('flowsFile','var') == 0)
     disp("@Loading Optical Flow Data");
@@ -49,12 +49,7 @@ else
 end
 
 % 2. Convert the Distance Matrix into a graph.
-
-
-connectionMatrix = distanceMatrix;
-connectionMatrix(connectionMatrix > mean(connectionMatrix(:))) = 0;
-%connectionMatrix = DistanceMatrixRejection(distanceMatrix);
-
+connectionMatrix = DistanceMatrixRejection(distanceMatrix);
 imshow(connectionMatrix);
 sparseDistanceMatrix = sparse(connectionMatrix);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
@@ -70,15 +65,20 @@ end
 
 % Define a curve
 imshow(imageSequence(:,:,:,selectedImageIndex)),title('Draw a path with at least 5 points');
-pointCount = 0;
-while(pointCount<5)
-    [pathX, pathY]=getline();
-    pointCount=size(pathX,1);
-    if(pointCount<5)
-        % Ask user to draw again if not enough points are collected
-        imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
-    end
-end
+% pointCount = 0;
+% while(pointCount<5)
+%     [pathX, pathY]=getline();
+%     pointCount=size(pathX,1);
+%     if(pointCount<5)
+%         % Ask user to draw again if not enough points are collected
+%         imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
+%     end
+% end
+
+pointCount = 6;
+pathX = [274.9535073409462,237.3678629690049,224.8393148450244,227.1884176182708,247.5473083197390,289.8311582381729];
+pathY = [151.9192495921696,154.2683523654159,169.1460032626427,189.5048939641109,206.7316476345840,204.3825448613376];
+
 
 % 3. For each node in the graph, compute the shortest path.
 [~,paths,~] = graphshortestpath(sparseDistanceMatrix,selectedImageIndex);
@@ -114,9 +114,9 @@ hold off;
 
 % 5. Pick the path in Paths whose advected location comes closest to the selected point. 
 % Render this path as the output image sequence for this user-drawn segment.
-outputImageSequence = ConvertPathsToImageSequence(closestPaths, imageSequence);
+[~, outputImageSequence] = ConvertPathsToImageSequence(closestPaths, imageSequence);
 implay(outputImageSequence);
 
+% Save the result
 outputImageSequence = imresize(outputImageSequence, [300 400]);
-
 save_sequence_color(outputImageSequence,outputPath,'output_basic_',0,4);

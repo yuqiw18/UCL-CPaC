@@ -41,21 +41,11 @@ imageCount = last - first + 1;
 %% Basic Section
 % 1. Compute a Distance Matrix that encodes the similarity in appearance
 % between all the frames in the collection.
-
 if (exist('distanceMatrixAdvanced','var') == 0)
     distanceMatrixAdvanced = ComputeDistanceMatrixAdvanced(imageSequence, flowsData);
 else
     disp("@Advanced Distance Matrix Already Calculated");
 end
-
-% figure;
-% title("Distance Matrix");
-% imshow(distanceMatrix);
-
-% probabilityMatrix = ComputeProbabilityMatrix(distanceMatrix);
-% figure;
-% title("Probability Matrix");
-% imshow(probabilityMatrix);
 
 [w,h] = size(distanceMatrixAdvanced);
 
@@ -76,16 +66,20 @@ end
 
 imshow(imageSequence(:,:,:,selectedImageIndex)),title('Draw a path with at least 5 points');
 
-pointCount = 0;
+% pointCount = 0;
+% 
+% while(pointCount<5)
+%     [pathX, pathY]=getline();
+%     pointCount=size(pathX,1);
+%     if(pointCount<5)
+%         % Ask user to draw again if not enough points are collected
+%         imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
+%     end
+% end
 
-while(pointCount<5)
-    [pathX, pathY]=getline();
-    pointCount=size(pathX,1);
-    if(pointCount<5)
-        % Ask user to draw again if not enough points are collected
-        imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
-    end
-end
+pointCount = 6;
+pathX = [274.9535073409462,237.3678629690049,224.8393148450244,227.1884176182708,247.5473083197390,289.8311582381729];
+pathY = [151.9192495921696,154.2683523654159,169.1460032626427,189.5048939641109,206.7316476345840,204.3825448613376];
 
 % 3. For each node in the graph, compute the shortest path.
 [~,paths,~] = graphshortestpath(sparseDistanceMatrix,selectedImageIndex);
@@ -120,9 +114,45 @@ hold off;
 
 % 5. Pick the path in Paths whose advected location comes closest to the selected point. 
 % Render this path as the output image sequence for this user-drawn segment.
-outputImageSequence = ConvertPathsToImageSequence(closestPaths, imageSequence);
-implay(outputImageSequence);
+[outputIndex, outputImageSequence] = ConvertPathsToImageSequence(closestPaths, imageSequence);
 
-save_sequence_color(outputImageSequence,outputPath,'output_adv_',0,4);
+%Interpolated frames
+frame = 6;
+outputIndexInterpolated = frame * (length(outputIndex)-1) + length(outputIndex);
+% e.g. F-123456-F-123456-F-123456-F
+% F raw frame + frame * (F-1)
+
+[height,width,channel,~] = size(outputImageSequence);
+interpolatedImageSequence = zeros(height,width,channel,outputIndexInterpolated);
+
+for i = 1: length(outputIndex)-1
+    
+    currentFrameIndex = outputIndex(i);
+    nextFrameIndex = outputIndex(i+1);
+    
+    currentFrame = imageSequence(:,:,:,currentFrameIndex);
+    nextFrame = imageSequence(:,:,:,nextFrameIndex);
+    
+    % Get the optical flow between the current frame and the next frame
+    % Since the previous step has removed duplicated connecting frames
+    % currentFrameIndex will never be the same as nextFrameIndex
+    if (currentFrameIndex > nextFrameIndex)
+        k = (currentFrameIndex - 1)*(currentFrameIndex - 2)/2 + nextFrameIndex;
+        flow = flowsData(:,:,:,k);
+    else
+        k = (nextFrameIndex - 1)*(nextFrameIndex - 2)/2 + currentFrameIndex;
+        flow = -flowsData(:,:,:,k);
+    end
+    
+    interpolatedImage = MotionInterpolation(currentFrame,nextFrame,flow,frame);
+    interpolatedImageSequence(:,:,:,(i-1)*(frame+1)+1) = currentFrame;
+    for f = 1:frame
+        interpolatedImageSequence(:,:,:,(i-1)*(frame+1)+1+f) = interpolatedImage(:,:,:,f);
+    end    
+end
+interpolatedImageSequence(:,:,:,outputIndexInterpolated) = imageSequence(:,:,:,outputIndex(length(outputIndex)));
+
+implay(interpolatedImageSequence);
+save_sequence_color(interpolatedImageSequence,outputPath,'output_adv_',0,4);
 
 
