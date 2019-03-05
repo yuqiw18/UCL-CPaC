@@ -1,8 +1,8 @@
 % Function for rejecting distant nodes
 % Keep n smallest values for each row(col)
-function distanceMatrix = DistanceMatrixRejection(rawDistanceMatrix)
+function distanceMatrix = DistanceMatrixRejection(rawDistanceMatrix, n)
     
-    valueNumberToKeep = 6;
+    valueNumberToKeep = n;
     [N,~] = size(rawDistanceMatrix);
     distanceMatrix = zeros(size(rawDistanceMatrix));
 

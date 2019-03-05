@@ -1,3 +1,6 @@
+% If you ran any task related to "myData_" image set before please
+% type 'clear' in command window to clear the cache before running this
+% part! The cache only works for "gjbLookAtTarget_" image set! (can only be reused with its advanced section)
 clearvars -except flowsFile flowsData imageSequence distanceMatrix distanceMatrixAdvanced;
 clc;
 warning('off','all');
@@ -48,7 +51,7 @@ else
 end
 
 % 2. Convert the Distance Matrix into a graph.
-connectionMatrix = DistanceMatrixRejection(distanceMatrix);
+connectionMatrix = DistanceMatrixRejection(distanceMatrix, 7);
 sparseDistanceMatrix = sparse(connectionMatrix);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
@@ -73,9 +76,14 @@ imshow(imageSequence(:,:,:,selectedImageIndex)),title('Draw a path with at least
 %     end
 % end
 
-pointCount = 6;
-pathX = [274.9535073409462,237.3678629690049,224.8393148450244,227.1884176182708,247.5473083197390,289.8311582381729];
-pathY = [151.9192495921696,154.2683523654159,169.1460032626427,189.5048939641109,206.7316476345840,204.3825448613376];
+% Points for reproducing the result in the report
+pointCount = 7; %@frame 3
+pathX = [243,244,229,259,229,254,253];
+pathY = [191,176,171,170,166,158,192];
+
+% pointCount = 6; %@frame 53
+% pathX = [274;256;245;246;263;284];
+% pathY = [167;169;179;195;199;195];
 
 % 3. Compute the shortest path for start point.
 % In the iteration compute the shortest path for each node in the graph.

@@ -1,4 +1,7 @@
-clearvars -except flowsFile flowsData imageSequence distanceMatrix distanceMatrixAdvanced;
+% If you ran any task related to "gjbLookAtTarget_" image set before please
+% type 'clear' in command window to clear the cache before running this
+% part! The cache only works for "myData_" image set! (can not be reused with any other section)
+clearvars -except flowsFile flowsData imageSequence distanceMatrixAdvanced;
 clc;
 warning('off','all');
 
@@ -16,7 +19,7 @@ outputPath = 'output';
 if (exist('flowsFile','var') == 0)
     disp("@Load Optical Flow Data");
     tic  
-        flowsFile = load('flow/flows.mat');
+        flowsFile = load('flow/myflows.mat');
         flowsData = flowsFile.flows_a;
     toc
 else
@@ -47,7 +50,7 @@ end
 [w,h] = size(distanceMatrixAdvanced);
 
 % 2. Convert the Distance Matrix into a graph.
-connectionMatrix = DistanceMatrixRejection(distanceMatrixAdvanced);
+connectionMatrix = DistanceMatrixRejection(distanceMatrixAdvanced, 3);
 sparseDistanceMatrix = sparse(connectionMatrix);
 % graph = biograph(sparseDistanceMatrix,[],'ShowArrows','off','LayoutType','equilibrium');
 % view(graph);
@@ -71,6 +74,11 @@ while(pointCount<5)
         imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
     end
 end
+
+% Points for reproducing the result in the report
+% pointCount = 8; %@frame 2
+% pathX = [250;288;304;294;251;238;284;270];
+% pathY = [140;145;127;96;89;118;124;107];
 
 % 3. Compute the shortest path for start point.
 % In the iteration compute the shortest path for each node in the graph.
@@ -107,47 +115,10 @@ hold off;
 
 % Render this path as the output image sequence for this user-drawn segment.
 [outputIndex, outputImageSequence] = ConvertPathsToImageSequence(closestPaths, imageSequence);
-
-% Interpolate slow motion
-frame = 6;
-outputIndexInterpolated = frame * (length(outputIndex)-1) + length(outputIndex);
-% e.g. F-123456-F-123456-F-123456-F
-% F raw frame + frame * (F-1)
-
-[height,width,channel,~] = size(outputImageSequence);
-interpolatedImageSequence = zeros(height,width,channel,outputIndexInterpolated);
-
-for i = 1: length(outputIndex)-1
-    
-    currentFrameIndex = outputIndex(i);
-    nextFrameIndex = outputIndex(i+1);
-    
-    currentFrame = imageSequence(:,:,:,currentFrameIndex);
-    nextFrame = imageSequence(:,:,:,nextFrameIndex);
-    
-    % Get the optical flow between the current frame and the next frame
-    % Since the previous step has removed duplicated connecting frames
-    % currentFrameIndex will never be the same as nextFrameIndex
-    if (currentFrameIndex > nextFrameIndex)
-        k = (currentFrameIndex-1)*(currentFrameIndex-2)/2+nextFrameIndex;
-        flow = flowsData(:,:,:,k);
-    else
-        k = (nextFrameIndex-1)*(nextFrameIndex-2)/2+currentFrameIndex;
-        flow = -flowsData(:,:,:,k);
-    end
-    
-    interpolatedImage = MotionInterpolation(currentFrame,nextFrame,flow,frame);
-    interpolatedImageSequence(:,:,:,(i-1)*(frame+1)+1) = currentFrame;
-    for f = 1:frame
-        interpolatedImageSequence(:,:,:,(i-1)*(frame+1)+1+f) = interpolatedImage(:,:,:,f);
-    end    
-end
-interpolatedImageSequence(:,:,:,outputIndexInterpolated) = imageSequence(:,:,:,outputIndex(length(outputIndex)));
-
-implay(interpolatedImageSequence);
+implay(outputImageSequence);
 
 % Save the result
-interpolatedImageSequence = imresize(interpolatedImageSequence, [300 400]);
-save_sequence_color(interpolatedImageSequence,outputPath,'output_adv_od_',0,4);
+outputImageSequence = imresize(outputImageSequence, [300 400]);
+save_sequence_color(outputImageSequence,outputPath,'output_adv_od_',0,4);
 
 
