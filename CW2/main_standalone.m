@@ -5,7 +5,7 @@ clearvars -except flowsFile flowsData imageSequence distanceMatrix distanceMatri
 clc;
 warning('off','all');
 
-% Setup
+%% Setup
 path = 'data';
 prefix = 'gjbLookAtTarget_';
 first = 0;
@@ -14,7 +14,7 @@ digits = 4;
 suffix = 'jpg';
 outputPath = 'output';
 
-% Initialisation
+%% Initialisation
 % Load Optical Flow
 if (exist('flowsFile','var') == 0)
     disp("@Loading Optical Flow Data");
@@ -41,7 +41,7 @@ end
 
 imageCount = last - first + 1;
 
-%% Basic Section
+%% Computation: Basic Section
 % 1. Compute a Distance Matrix that encodes the similarity in appearance
 % between all the frames in the collection.
 if (exist('distanceMatrix','var') == 0)
@@ -98,12 +98,18 @@ EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
 disp("@Compute Closest Advected Path");
 tic  
     for i = 1:pointCount-1  
+        
         startPoint = [pathX(i),pathY(i)];   
         endPoint = [pathX(i+1),pathY(i+1)]; 
-        advectedPositionValue = ComputeAdvectedPosition(startPoint, paths, flowsData); 
-        [closestIndex, closestPoint] = FindClosestPoint(endPoint, advectedPositionValue); 
-        EstimatedClosestAdvLoc(i+1,:)= closestPoint;  
+        % Calculate the advected position value
+        advectedPositionValue = ComputeAdvectedPosition(startPoint, paths, flowsData);
+        % Find the closest point
+        [closestIndex, closestPoint] = FindClosestPoint(endPoint, advectedPositionValue);
+        % Add the point to the estimation list
+        EstimatedClosestAdvLoc(i+1,:)= closestPoint;
+        % Get the closest path
         closestPaths{i} = paths{closestIndex};
+        % Update the path for next iteration
         [~,paths,~] = graphshortestpath(sparseDistanceMatrix,closestIndex);
     end
 toc

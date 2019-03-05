@@ -40,7 +40,7 @@ end
 
 imageCount = last - first + 1;
 
-%% 
+%% Computation
 % 1. Compute a better distance matrix that takes both image difference and
 % trajectory-similarity into account
 if (exist('distanceMatrixAdvanced','var') == 0)
@@ -97,13 +97,20 @@ EstimatedClosestAdvLoc(1,:)=[pathX(1),pathY(1)];
 
 disp("@Computing Closest Advected Path");
 tic  
-    for i = 1:pointCount-1    
-        startPoint = [pathX(i),pathY(i)];   
-        endPoint = [pathX(i+1),pathY(i+1)]; 
-        advectedPositionValue = ComputeAdvectedPosition(startPoint, paths, flowsData);      
-        [closestIndex, closestPoint] = FindClosestPoint(endPoint, advectedPositionValue); 
-        EstimatedClosestAdvLoc(i+1,:)= closestPoint;   
-        closestPaths{i} = paths{closestIndex};   
+    for i = 1:pointCount-1
+        
+        startPoint = [pathX(i),pathY(i)];
+        endPoint = [pathX(i+1),pathY(i+1)];
+        
+        % Calculate the advected position value
+        advectedPositionValue = ComputeAdvectedPosition(startPoint, paths, flowsData);   
+        % Find the closest point
+        [closestIndex, closestPoint] = FindClosestPoint(endPoint, advectedPositionValue);  
+        % Add the point to the estimation list
+        EstimatedClosestAdvLoc(i+1,:)= closestPoint;    
+        % Get the closest path
+        closestPaths{i} = paths{closestIndex};
+        % Update the path for next iteration
         [~,paths,~] = graphshortestpath(sparseDistanceMatrix,closestIndex);
     end
 toc
