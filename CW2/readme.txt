@@ -25,3 +25,7 @@ There are three main files to run
 [1]output_basic_####.png
 [2]output_adv_####.png
 [3]output_adv_od_####.png
+
+
+<<ADDITIONAL INFO>>
+* The function of viewing node graph has been commented out because it takes very long time to generate the graph, feel free to uncomment the function to check the result.

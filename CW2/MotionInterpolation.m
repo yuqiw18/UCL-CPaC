@@ -27,6 +27,8 @@ function interpolatedFrames = MotionInterpolation(currentFrame, nextFrame, flow,
         % f0 will have higher contribution in previous several frames but
         % will decrease and the contribution of f1 will increase so that
         % the artifact will be minimized.
+        % Similarly because the flow is calculated other way around we need
+        % to apply the opposite weight to the flow
         alpha = f/(frame+1);
         f0 = imwarp(currentFrame, alpha*(-flow));  
         f1 = imwarp(nextFrame, (1-alpha)*(flow));

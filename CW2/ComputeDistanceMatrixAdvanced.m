@@ -4,7 +4,7 @@
 function distanceMatrix = ComputeDistanceMatrixAdvanced(imageSequence, flowsData)
 disp("@Computing Distance Matrix (Advanced)");
 tic      
-    [height, width, ~, f] = size(imageSequence);
+    [~, ~, ~, f] = size(imageSequence);
     imageDifference = zeros(f,f);
     trajectorySimiliarity = zeros(f,f);
     

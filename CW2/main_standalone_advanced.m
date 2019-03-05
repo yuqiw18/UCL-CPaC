@@ -160,8 +160,6 @@ disp("@Performing Motion Interpolation");
     interpolatedImageSequence(:,:,:,outputIndexInterpolated) = imageSequence(:,:,:,outputIndex(length(outputIndex)));
 toc
 
-implay(interpolatedImageSequence);
-
 % Save the result
 interpolatedImageSequence = imresize(interpolatedImageSequence, [300 400]);
 save_sequence_color(interpolatedImageSequence,outputPath,'output_adv_',0,4);

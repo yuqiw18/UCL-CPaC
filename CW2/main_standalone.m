@@ -120,7 +120,6 @@ hold off;
 
 % Render this path as the output image sequence for this user-drawn segment.
 [~, outputImageSequence] = ConvertPathsToImageSequence(closestPaths, imageSequence);
-implay(outputImageSequence);
 
 % Save the result
 outputImageSequence = imresize(outputImageSequence, [300 400]);
