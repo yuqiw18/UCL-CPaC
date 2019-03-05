@@ -14,7 +14,7 @@ There are three main files to run
 
 3.main_standalone_advanced_own_data
 * This file includes optional taks [1]Better Path and [2]Own Data
-* Run GenerateFlowData.m and place the generated myflows.mat file under /flow folder
+* Run GenerateFlowData.m and place the generated myflows.mat file under /flow folder ***WINDOWS X64 ONLY***
 * Type 'clear' in command window to clear the cache before running this file if you ran any task related to "gjbLookAtTarget_" image set before. The cache only works for "myData_" image set which is not shared with any other file
 
 <<INTERACTION>>

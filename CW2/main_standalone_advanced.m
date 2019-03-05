@@ -66,22 +66,20 @@ if (selectedImageIndex < first || selectedImageIndex > last)
 end
 
 imshow(imageSequence(:,:,:,selectedImageIndex)),title('Draw a path with at least 5 points');
-
-% pointCount = 0;
-% 
-% while(pointCount<5)
-%     [pathX, pathY]=getline();
-%     pointCount=size(pathX,1);
-%     if(pointCount<5)
-%         % Ask user to draw again if not enough points are collected
-%         imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
-%     end
-% end
+pointCount = 0;
+while(pointCount<5)
+    [pathX, pathY]=getline();
+    pointCount=size(pathX,1);
+    if(pointCount<5)
+        % Ask user to draw again if not enough points are collected
+        imshow(imageSequence(:,:,:,selectedImageIndex)),title('At least 5 points, please draw again');
+    end
+end
 
 % Points for reproducing the result in the report
-pointCount = 7; %@frame 3
-pathX = [243,244,229,259,229,254,253];
-pathY = [191,176,171,170,166,158,192];
+% pointCount = 7; %@frame 3
+% pathX = [243,244,229,259,229,254,253];
+% pathY = [191,176,171,170,166,158,192];
 
 % pointCount = 6; @frame 53
 % pathX = [274;256;245;246;263;284];
