@@ -77,8 +77,8 @@ end
 
 % Points for reproducing the result in the report
 % pointCount = 8; %@frame 2
-% pathX = [250;288;304;294;251;238;284;270];
-% pathY = [140;145;127;96;89;118;124;107];
+% pathX = [253;285;284;249;215;217;256;248];
+% pathY = [123;119;85;69;85;121;106;85];
 
 % 3. Compute the shortest path for start point.
 % In the iteration compute the shortest path for each node in the graph.
@@ -121,6 +121,7 @@ hold off;
 
 % Render this path as the output image sequence for this user-drawn segment.
 [outputIndex, outputImageSequence] = ConvertPathsToImageSequence(closestPaths, imageSequence);
+implay(outputImageSequence);
 
 % Save the result
 outputImageSequence = imresize(outputImageSequence, [300 400]);
