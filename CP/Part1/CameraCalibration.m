@@ -1,4 +1,7 @@
-function CameraCalibration(mode)
+%function CameraCalibration(mode)
+
+    calibrationMode = 'synthetic';
+
     switch calibrationMode
         case 'synthetic'
             for sn=0:2:4
@@ -34,6 +37,23 @@ function CameraCalibration(mode)
             imwrite(cam_img_out,save_path);
             end
         otherwise
-
+            disp('ERROR: Undefined Calibration Mode');
     end
-end
+   
+%% 1,2. Projection Matrix Estimation & Reprojection
+
+
+
+
+
+
+
+%% 3. Point Cloud Generation & Visualisation
+    
+
+
+
+
+
+
+%end

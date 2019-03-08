@@ -3,6 +3,7 @@
 
 clearvars -except uvPatternSequence;
 
+% Setup & Initialisation
 path = 'data/synthetic_data/';
 prefix = 'cube_T1/';
 first = 0;
@@ -21,12 +22,13 @@ else
     disp("@UV Patterns Already Loaded");
 end
 
+%% 1. Light Patterns Decoding
 % U: First 20 images 
 % V: Remaining 20 images
 decodedU = DecodeUV(uvPatternSequence(:,:,1:20));
 decodedV = DecodeUV(uvPatternSequence(:,:,21:40));
 
-% generate mask to eliminate errors
+%% 2. Unreliable Pixel Elimination
 mask_sum = decodedU(:,:,2)+decodedV(:,:,2);
 mask = mask_sum > 5;
 mask_3d = repmat(mask,[1,1,2]);
@@ -44,7 +46,10 @@ v = coded_pix(:,:,2);
 figure;
 subplot(1,2,1),imagesc(u),title('u');
 subplot(1,2,2),imagesc(v),title('v');
-    
+  
+
+%% 4. Depth Map Computation
+
 %     fprintf('Computeing 3D point cloud...');
 %     [depth_map,point_cloud] = get_depth(coded_pix);
 %     
@@ -61,6 +66,13 @@ subplot(1,2,2),imagesc(v),title('v');
 %     saveas_ply(point_cloud,folder);
 %     fprintf('done\n');
 
+%% 5. Point Cloud Visualisation
+
+
+
+
+
+
 %end
 
 
@@ -69,37 +81,27 @@ disp('@Decoding UV Pattern');
 tic
     [height,width,~]=size(uvPatternSequence);    
     decodedUV = zeros(height,width,2);
+    unknownThreshold = 0.05;
    
+    % For each pixel
     for h=1:height
-        disp(h/height);
         for w=1:width
-            disp('');
-            % current_code represents binary 1-10 order
-            current_code = zeros(1,10);
             
-            diff_sum = 0;
+            % Decode using image difference
+            codeWord = seq(h,w,1:2:40) - seq(h,w,2:2:40);
             
-            idx = 1;
+            codeWordU = codeWord(1:10);
+            codeWordV = codeWord(11:20);
             
-            for k=1:2:20
-                
-                int1 = uvPatternSequence(h,w,k);     
-                int2 = uvPatternSequence(h,w,k+1);
-                
-                % if white is before black,set as 1; otherwise, set as 0
-                if int1<=int2
-                    current_code(idx) = 0;
-                else
-                    current_code(idx) = 1;
-                end
-                
-                idx = idx+1;
-                diff_sum = diff_sum + abs(int1-int2);
-            end
-            
-            % convert binary to decimal
-            decodedUV(h,w,1) = bi2de(current_code)+1;
-            decodedUV(h,w,2) = diff_sum;
+            % Convert to decimal values
+            decodedUV(h,w,:) = [sum(codeWordU.*bin_seq'),sum(codeWordV.*bin_seq')];
+
+            % Detect Unknown values
+             if(sum(codeWord) == 0 && ~own_data)
+                decodedUV(h,w,:) = -1; % Mark as unknown
+             elseif(abs(sum(codeWord)) < T && own_data)
+                decodedUV(h,w,:) = -1; % Mark as unknown
+             end 
         end
     end
 toc
