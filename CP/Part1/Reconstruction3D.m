@@ -1,12 +1,12 @@
 % Function for Synthetic Image 3D Reconstruction
-%function result = Reconstruction3D(uvPatternSequence)
 
 close all;
 clearvars -except uvPatternSequence decodedUV;
 
 % Setup & Initialisation
 path = 'data/synthetic_data/';
-prefix = 'cube_T1/';
+filename = 'cube_T1';
+prefix = '';
 first = 0;
 last = 39;
 digits = 4;
@@ -16,94 +16,33 @@ outputPath = 'output';
 if (exist('uvPatternSequence','var') == 0)
     disp("@Loading UV Patterns");
     tic  
-        uvPatternSequence = load_sequence(path, prefix, first, last, digits, suffix);
+        uvPatternSequence = load_sequence(strcat(path, filename, '/'), prefix, first, last, digits, suffix);
         uvPatternSequence = double(uvPatternSequence);
     toc
 else
     disp("@UV Patterns Already Loaded");
 end
 
-%% 1. Light Patterns Decoding
+%% 1,2. Light Patterns Decoding & Unreliable Pixel Elimination
 if (exist('decodedUV','var') == 0)
-    decodedUV = DecodeUV2(uvPatternSequence);
-%     disp('@Decoding UV Pattern');
-%     tic
-%     [height,width,~]=size(uvPatternSequence);    
-%     decodedUV = zeros(height,width,2);
-%     binary= [1 2 4 8 16 32 64 128 256 512];
-%      
-%     codeWord = uvPatternSequence(:,:,1:2:40) - uvPatternSequence(:,:,2:2:40);
-%     codeWordU = codeWord(:,:,1:10);
-%     codeWordV = codeWord(:,:,11:20);
-%    
-%     for h=1:height
-%         disp(h/height*100);
-%         for w=1:width         
-%             decodedUV(h,w,1) = sum(reshape(codeWordU(h,w,:),10,1).*binary');
-%             decodedUV(h,w,2) = sum(reshape(codeWordV(h,w,:),10,1).*binary');
-% %             if sum(codeWordU(h,w,:)) == 0
-% %                 decodedUV(h,w,:) = -1;
-% %             end
-%         end
-%     end
-% toc   
+    decodedUV = DecodeUV(uvPatternSequence);
 else
     disp("@UV Already Decoded");
 end
 
+% u = decodedUV(:,:,1);
+% v = decodedUV(:,:,2);
+% figure;
+% subplot(1,2,1),imagesc(u),title('U');
+% subplot(1,2,2),imagesc(v),title('V');
 
-%% 2. Unreliable Pixel Elimination
-u = decodedUV(:,:,1);
-v = decodedUV(:,:,2);
-
-figure;
-subplot(1,2,1),imagesc(u),title('U');
-subplot(1,2,2),imagesc(v),title('V');
-
-%% 3. Calibration Matrix Setup
-%depthMap = ComputeDepthMap(decodedUV, 0);
-
-%% 4. Depth Map Computation
-
-%     fprintf('Computeing 3D point cloud...');
-%     [depth_map,point_cloud] = get_depth(coded_pix);
-%     
-%     mask = depth_map == -1;
-%     depth_map = mask.*(max(depth_map(:)))+(1-mask).*depth_map;
-%    
-%     figure;
-%     imagesc(depth_map),title('depth map');
-%     %saveas(gcf, ['depth_map_',folder,'.jpg']);
-%     fprintf('done\n');
-%     
-%     % save as PLY file -------------------------    
-%     fprintf('Saving as PLY file...');
-%     saveas_ply(point_cloud,folder);
-%     fprintf('done\n');
+%% 3,4 Calibration Matrix Setup & Depth Map Computation
+depthMap = ComputeDepthMap(decodedUV, 0);
 
 %% 5. Point Cloud Visualisation
+%SavePLY(depthMap, strcat(filename, '.ply'));
 
-%end
-
-function decodedUV = DecodeUV2(uvPatternSequence)
-disp('@Decoding UV Pattern');
-tic
-    [height,width,~]=size(uvPatternSequence);    
-    decodedUV = zeros(height,width,2);
-    binary= [1 2 4 8 16 32 64 128 256 512];
-    
-    for h=1:height
-        disp(h/height*100);
-        for w=1:width
-            imageDifference = uvPatternSequence(h,w,1:2:40)-uvPatternSequence(h,w,2:2:40);
-            codeWordU = reshape(imageDifference(1:10),10,1);
-            codeWordV = reshape(imageDifference(11:20),10,1);
-            decodedUV(h,w,:) = [sum(codeWordU.*binary'),sum(codeWordV.*binary')];
-        end
-    end
-toc 
-end
-
+%% Core Functions
 function decodedUV = DecodeUV(uvPatternSequence)
 disp('@Decoding UV Pattern');
 tic
@@ -116,20 +55,17 @@ tic
     codeWordV = codeWord(:,:,11:20);
    
     for h=1:height
-        disp(h/height*100);
+        %disp(h/height*100);
         for w=1:width         
-            decodedUV(h,w,1) = sum(reshape(codeWordU(h,w,:),1,10).*binary);
-            decodedUV(h,w,2) = sum(reshape(codeWordV(h,w,:),1,10).*binary);
-%             if sum(codeWordU(h,w,:)) == 0
-%                 decodedUV(h,w,:) = -1;
-%             end
+            decodedUV(h,w,1) = sum(reshape(codeWordU(h,w,:)>=0,1,10).*binary);
+            decodedUV(h,w,2) = sum(reshape(codeWordV(h,w,:)>=0,1,10).*binary);
+            if sum(codeWord(h,w,:)) == 0
+                decodedUV(h,w,:) = -1;
+            end
         end
     end
 toc 
 end
-
-
-
 
 function depthMap = ComputeDepthMap(decodedUV, calibrationMatrix)
 disp('@Computing Depth Map')
@@ -157,9 +93,7 @@ tic
     projectorProjection = [[   3003.90649414,    1633.28234863,   -1484.72570801,     255.92596436],
                   [  -1095.50610352,    3296.90429688,    1253.46362305,     311.20962524],
                   [      0.59084243,       0.00900178,       0.80673677,       1.36014771]];
-
-              
-              
+         
     [w,h,~] = size(decodedUV);
     depthMap = zeros(w,h,3);
 
@@ -175,6 +109,7 @@ tic
 
     % For each point solve the linear system
     for i=1:w
+        %disp(i/w*100);
         for j=1:h
             if(decodedUV(i,j,1)~=-1)
                 % Compute A and b
