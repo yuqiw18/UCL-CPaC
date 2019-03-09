@@ -1,9 +1,18 @@
 % Function for Synthetic Image 3D Reconstruction
 
-close all;
+%close all;
 clearvars -except uvPatternSequence decodedUV;
 
 % Setup & Initialisation
+% path = 'data/real_data/';
+% filename = 'real_crayon_dalek';
+% prefix = 'IMG_';
+% first = 9418;
+% last = 9457;
+% digits = 4;
+% suffix = 'jpg';
+% outputPath = 'output/';
+
 path = 'data/synthetic_data/';
 filename = 'cube_T1';
 prefix = '';
@@ -17,7 +26,7 @@ if (exist('uvPatternSequence','var') == 0)
     disp("@Loading UV Patterns");
     tic  
         uvPatternSequence = load_sequence(strcat(path, filename, '/'), prefix, first, last, digits, suffix);
-        uvPatternSequence = double(uvPatternSequence);
+        uvPatternSequence = im2double(uvPatternSequence);
     toc
 else
     disp("*UV Patterns Already Loaded");
@@ -26,21 +35,23 @@ end
 %% 1,2. Light Patterns Decoding & Unreliable Pixel Elimination
 if (exist('decodedUV','var') == 0)
     decodedUV = DecodeUV(uvPatternSequence);
+    %decodedUV = get_uv_code(uvPatternSequence);
 else
     disp("*UV Already Decoded");
 end
 
-% u = decodedUV(:,:,1);
-% v = decodedUV(:,:,2);
-% figure;
-% subplot(1,2,1),imagesc(u),title('U');
-% subplot(1,2,2),imagesc(v),title('V');
+u = decodedUV(:,:,1);
+v = decodedUV(:,:,2);
+figure;
+subplot(1,2,1),imagesc(u),title('U');
+subplot(1,2,2),imagesc(v),title('V');
 
 %% 3,4 Calibration Matrix Setup & Depth Map Computation
-depthMap = ComputeDepthMap(decodedUV, 'provided_synthetic');
+%depthMap = ComputeDepthMap(decodedUV, 'provided_synthetic');
 
 %% 5. Point Cloud Visualisation
 %SavePLY(depthMap, strcat(outputPath,filename, '.ply'));
+%pcwrite(depthMap,strcat(outputPath,filename),'PLYFormat','binary');
 
 disp('>>Task Complete')
 %% Core Functions
@@ -50,20 +61,52 @@ tic
     [height,width,~]=size(uvPatternSequence);    
     decodedUV = zeros(height,width,2);
     binary= [1 2 4 8 16 32 64 128 256 512];
+    threshold = 0.02;
      
     codeWord = uvPatternSequence(:,:,1:2:40) - uvPatternSequence(:,:,2:2:40);
     codeWordU = codeWord(:,:,1:10);
     codeWordV = codeWord(:,:,11:20);
-   
+    
+    currentU = zeros(1,10);
+    currentV = zeros(1,10);
+    
     for h=1:height
-        %disp(h/height*100);
-        for w=1:width         
-            decodedUV(h,w,1) = sum(reshape(codeWordU(h,w,:)>=0,1,10).*binary);
-            decodedUV(h,w,2) = sum(reshape(codeWordV(h,w,:)>=0,1,10).*binary);
-            if sum(codeWord(h,w,:)) == 0
-                decodedUV(h,w,:) = -1;
+        disp(h/height*100);
+        for w=1:width
+            isReliableU = true;
+            isReliableV = true;
+            for d = 1:10        
+               if (codeWordU(h,w,d)>threshold)
+                   currentU(d) = 1;
+               elseif (codeWordU(h,w,d)<-threshold)
+                   currentU(d) = 0;
+               else
+                   currentU(d) = -1;
+                   isReliableU = false;
+               end  
+               
+               if (codeWordV(h,w,d)>threshold)
+                   currentV(d) = 1;
+               elseif (codeWordV(h,w,d)<-threshold)
+                   currentV(d) = 0;
+               else
+                   currentV(d) = -1;
+                   isReliableV = false;
+               end
+            end 
+            if (isReliableU)
+                decodedUV(h,w,1) = sum(currentU.*binary);
+            else
+                decodedUV(h,w,1) = -1;
+            end
+     
+            if (isReliableV)
+                decodedUV(h,w,2) = sum(currentV.*binary);
+            else
+                decodedUV(h,w,2) = -1;
             end
         end
+        
     end
 toc 
 end
@@ -160,6 +203,3 @@ end
 
 toc
 end
-
-
-

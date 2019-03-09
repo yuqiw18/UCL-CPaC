@@ -1,59 +1,43 @@
+warning('off','all');
+
+
 %function CameraCalibration(mode)
+
 
     calibrationMode = 'synthetic';
     
     switch calibrationMode
         case 'synthetic' 
-%             % File Parameters
-%             path = 'data/synthetic_data/calibration/';
-%             prefix = '';
-%             first = 0;
-%             last = 5;
-%             digits = 4;
-%             suffix = 'png';
-%             outputPath = 'output/synthetic_reporjected_000';
-%             
-%             % Projector & Checkboard Parameters
-%             projectorResolution = [1024,768];
-%             checkboardPosition = [378,288];
-%             checkboardSize = 270;
-%             
-%             % Projection Matrix Estimation & Reprojection
-%             calibImageSequence = double(load_sequence(path, prefix, first, last, digits, suffix));   
-%             Reprojection2(calibImageSequence, projectorResolution, checkboardPosition, checkboardSize, outputPath);
-            for sn=1:2:5
-            proj_name = ['data/synthetic_data/calibration/000',num2str(sn-1),'.png'];
-            cam_name = ['data/synthetic_data/calibration/000',num2str(sn),'.png'];
-            proj_img = imread(proj_name);
-            cam_img = imread(cam_name);
-            save_path = ['output/reproject_000',num2str(sn-1),'.png'];
-
-            reprojection(proj_img, cam_img, 1024, 768, 378, 277, 270, save_path, true);
-%             imwrite(cam_img_out, save_path);
-             end
+            % File Parameters
+            path = 'data/synthetic_data/calibration/';
+            prefix = '';
+            first = 0;
+            last = 5;
+            digits = 4;
+            suffix = 'png';
+            outputPath = 'output/synthetic_reporjected_000';
+            
+            % Projector & Checkboard Parameters
+            projectorResolution = [1024,768];
+            checkboardPosition = [378,288];
+            checkboardSize = 270;
+            
+            % Projection Matrix Estimation & Reprojection
+            calibImageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);   
+            Reprojection(calibImageSequence, projectorResolution, checkboardPosition, checkboardSize, outputPath);
+           
+%             for sn=1:2:5
+%             proj_name = ['data/synthetic_data/calibration/000',num2str(sn-1),'.png'];
+%             cam_name = ['data/synthetic_data/calibration/000',num2str(sn),'.png'];
+%             proj_img = imread(proj_name);
+%             cam_img = imread(cam_name);
+%             save_path = ['output/reproject_000',num2str(sn-1),'.png'];
+% 
+%             reprojection(proj_img, cam_img, 1024, 768, 378, 277, 270, save_path, true);
+             %end
                  
-        case 'real'
-            for rn=1:9
-            proj_name = ['data/real_calibration/IMG_932',num2str(rn),'.jpg'];
-            cam_name = ['data/real_calibration/IMG_932',num2str(rn),'.jpg'];
-            proj_img = imread(proj_name);
-            cam_img = imread(cam_name);
-            save_path = ['data/real_calibration/reproject_932',num2str(rn),'.jpg'];
-            
-            [proj_img_out, cam_img_out] = reprojection(proj_img, cam_img, 1024, 768, 518, 120, 299, true);
-            imwrite(cam_img_out,save_path);
-            end
+        case 'real'    
         case 'capture'
-            for on=1:6
-            proj_name = ['data/own_calibration/IMG_28',num2str(on+87),'.jpg'];
-            cam_name = ['data/own_calibration/IMG_28',num2str(on+87),'.jpg'];
-            proj_img = imread(proj_name);
-            cam_img = imread(cam_name);
-            save_path = ['data/own_calibration/reproject_28',num2str(on+87),'.jpg'];
-            
-            [proj_img_out, cam_img_out] = reprojection(proj_img, cam_img, 1920, 1080, 705, 285, 512, true);
-            imwrite(cam_img_out,save_path);
-            end
         otherwise
             disp('ERROR: Undefined Calibration Mode');
     end
@@ -70,9 +54,9 @@
    
 %end
 
-function Reprojection2(calibImageSequence, projectorResolution, checkboardPosition, checkboardSize, outputPath)
+function Reprojection(calibImageSequence, projectorResolution, checkboardPosition, checkboardSize, outputPath)
     
-    calibImageCount = size(calibImageSequence,3);
+    calibImageCount = size(calibImageSequence,4);
     resWidth = projectorResolution(1);
     resHeight = projectorResolution(2);
     checkboardX = checkboardPosition(1);
@@ -80,7 +64,7 @@ function Reprojection2(calibImageSequence, projectorResolution, checkboardPositi
   
     for r = 1:2:calibImageCount-1;
         figure;
-        imshow(uint8(calibImageSequence(:,:,r)));
+        imshow(calibImageSequence(:,:,:,r));
         title('Please select 4 corners');
         [corX, corY] = getline(gcf);
         
@@ -90,7 +74,7 @@ function Reprojection2(calibImageSequence, projectorResolution, checkboardPositi
         
         HEst = calcBestHomography(pts1Cart, pts2Cart);
         transfrom = projective2d(HEst');
-        reprojectedImage = imwarp(calibImageSequence(:,:,r+1),transfrom);
+        reprojectedImage = imtransform(calibImageSequence(:,:,:,r+1),transfrom, 'XData', [1 resWidth],'YData',[1 resHeight]);
         imwrite(reprojectedImage,strcat(outputPath, num2str(r+1), '.png'));
         close all;
     end
