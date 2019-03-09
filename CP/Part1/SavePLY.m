@@ -14,7 +14,7 @@ fprintf(fid, ['end_header', '\n']);
 [h,w,~] = size(depthMap);
 
 for i=1:h
-    disp(i/h);
+    disp(i/h*100);
     for j=1:w
         if(depthMap(i,j,3)~=0)
             fprintf(fid, '%f %f %f\n', depthMap(i,j,1),depthMap(i,j,2), depthMap(i,j,3));

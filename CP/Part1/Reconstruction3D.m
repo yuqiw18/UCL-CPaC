@@ -11,7 +11,7 @@ first = 0;
 last = 39;
 digits = 4;
 suffix = 'png';
-outputPath = 'output';
+outputPath = 'output/';
 
 if (exist('uvPatternSequence','var') == 0)
     disp("@Loading UV Patterns");
@@ -20,14 +20,14 @@ if (exist('uvPatternSequence','var') == 0)
         uvPatternSequence = double(uvPatternSequence);
     toc
 else
-    disp("@UV Patterns Already Loaded");
+    disp("*UV Patterns Already Loaded");
 end
 
 %% 1,2. Light Patterns Decoding & Unreliable Pixel Elimination
 if (exist('decodedUV','var') == 0)
     decodedUV = DecodeUV(uvPatternSequence);
 else
-    disp("@UV Already Decoded");
+    disp("*UV Already Decoded");
 end
 
 % u = decodedUV(:,:,1);
@@ -37,11 +37,12 @@ end
 % subplot(1,2,2),imagesc(v),title('V');
 
 %% 3,4 Calibration Matrix Setup & Depth Map Computation
-depthMap = ComputeDepthMap(decodedUV, 0);
+depthMap = ComputeDepthMap(decodedUV, 'provided_synthetic');
 
 %% 5. Point Cloud Visualisation
-%SavePLY(depthMap, strcat(filename, '.ply'));
+%SavePLY(depthMap, strcat(outputPath,filename, '.ply'));
 
+disp('>>Task Complete')
 %% Core Functions
 function decodedUV = DecodeUV(uvPatternSequence)
 disp('@Decoding UV Pattern');
@@ -70,30 +71,48 @@ end
 function depthMap = ComputeDepthMap(decodedUV, calibrationMatrix)
 disp('@Computing Depth Map')
 tic
-    cameraIntrinsic = [[   4786.25390625,       0.00000000,    1541.16491699]
-                 [      0.00000000,    4789.81884766,    1036.94421387]
-                 [      0.00000000,       0.00000000,       1.00000000]];
-             
-    cameraExtrinsic =[[      0.99998617,      -0.00475739,       0.00223672,      -0.10157115],
-                 [      0.00382316,       0.95016861,       0.31171292,      -0.10139455],
-                 [     -0.00360820,      -0.31170005,       0.95017368,       0.49625999]];
-             
-    cameraProjection = [[   4780.62646484,    -503.15124512,    1475.07995605,     278.67315674],
-                  [     14.57075500,    4227.92041016,    2478.32568359,      28.93240356],
-                  [     -0.00360820,      -0.31170005,       0.95017368,       0.49625999]];
-
-    projectorIntrinsic =[[   3680.39404297,       0.00000000,     591.75494385],
-                 [      0.00000000,    3672.32153320,     393.62173462],
-                 [      0.00000000,       0.00000000,       1.00000000]];
-             
-    projectorExtrinsic =    [[      0.72119248,       0.44233182,      -0.53312665,      -0.14915472],
-                 [     -0.36164442,       0.89680630,       0.25485638,      -0.06104425],
-                 [      0.59084243,       0.00900178,       0.80673677,       1.36014771]];
-             
-    projectorProjection = [[   3003.90649414,    1633.28234863,   -1484.72570801,     255.92596436],
-                  [  -1095.50610352,    3296.90429688,    1253.46362305,     311.20962524],
-                  [      0.59084243,       0.00900178,       0.80673677,       1.36014771]];
-         
+switch calibrationMatrix
+    case 'provided_synthetic'
+        disp('*Using Provided Synthetic Calibration Matrix');
+        SyntheticMatrixProfile;
+    case 'calib_synthetic'
+        disp('*Using Estimated Synthetic Calibration Matrix');
+        CalibSyntheticMatrixProfile;
+    case 'calib_real'
+        disp('*Using Estimated Real Calibration Matrix');
+        CalibRealMatrixProfile;
+    case 'calib_capture'
+        disp('*Using Estimated Captured Calibration Matrix');
+        CalibCaptureMatrixProfile;
+    otherwise
+        disp('ERROR: Undefined Calibration Type');
+        cameraIntrinsic = zeros(3,3);
+        cameraExtrinsic = zeros(3,4);
+        cameraProjection = zeros(3,4);     
+        projectorIntrinsic = zeros(3,3);
+        projectorExtrinsic = zeros(3,4);
+        projectorProjection = zeros(3,4);     
+end             
+%     cameraIntrinsic = [[4786.25390625,0.00000000,1541.16491699]
+%                  [0.00000000,4789.81884766,1036.94421387]
+%                  [0.00000000,0.00000000,1.00000000]];
+%              
+%     cameraExtrinsic =[[0.954846897455116,-0.243793610738522,0.339600222517088,0.103748],
+%                  [0.295599497778259,0.722241740754021,-1.25058035299751,0.250543],
+%                  [0.0298050219523619,0.647249212649715,1.52339110853483,-0.439700]];
+% 
+%     cameraProjection = cameraIntrinsic*cameraExtrinsic;
+%     
+%     projectorIntrinsic =[[3680.39404297,0.00000000,591.75494385],
+%                  [0.00000000,3672.32153320,393.62173462],
+%                  [0.00000000,0.00000000,1.00000000]];
+%              
+%     projectorExtrinsic =    [[-0.389657586760984,-0.163708660668265,1.81258537950830,-0.718140],
+%                  [-0.852751906358342,-0.307524981505965,-0.844375679308612,0.108477],
+%                  [0.347823448435870,-0.937351513666009,-0.0395468606198075,-1.161242]];
+%              
+%     projectorProjection = projectorIntrinsic*projectorExtrinsic;
+              
     [w,h,~] = size(decodedUV);
     depthMap = zeros(w,h,3);
 
@@ -141,4 +160,6 @@ tic
 
 toc
 end
+
+
 
