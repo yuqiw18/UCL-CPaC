@@ -13,7 +13,7 @@ function [cameraIntrinsic,cameraExtrinsic,cameraProjection,projectorIntrinsic,pr
              cameraProjection = [4780.62646484,-503.15124512,1475.07995605,278.67315674;
                   14.57075500,4227.92041016,2478.32568359,28.93240356;
                   -0.00360820,-0.31170005,0.95017368,0.49625999];
-              projectorIntrinsic = [3680.39404297,0.00000000,591.75494385;
+             projectorIntrinsic = [3680.39404297,0.00000000,591.75494385;
                  0.00000000,3672.32153320,393.62173462;
                  0.00000000,0.00000000,1.00000000];
              projectorExtrinsic = [0.72119248,0.44233182,-0.53312665,-0.14915472;
@@ -21,7 +21,8 @@ function [cameraIntrinsic,cameraExtrinsic,cameraProjection,projectorIntrinsic,pr
                  0.59084243,0.00900178,0.80673677,1.36014771];
              projectorProjection = [3003.90649414,1633.28234863,-1484.72570801,255.92596436;
                   -1095.50610352,3296.90429688,1253.46362305,311.20962524;
-                  0.59084243,0.00900178,0.80673677,1.36014771];              
+                  0.59084243,0.00900178,0.80673677,1.36014771];   
+      
         case 'calib_synthetic'
             disp('*Using Estimated Synthetic Calibration Matrix');
 %             cameraIntrinsic = [7575.74257718199,0,950.462527925728;0,5557.33651048385,-74.2905886684759;0,0,1];
@@ -46,7 +47,6 @@ function [cameraIntrinsic,cameraExtrinsic,cameraProjection,projectorIntrinsic,pr
             projectorIntrinsic = [4367.61443036789,0,973.359021608742;0,4387.60136358455,-24.7201698757660;0,0,1];
             projectorExtrinsic = [0.396963730922523,0.914794209424916,0.0746414813271621,-377.561600580166;0.845755884455561,-0.332987948132573,-0.416912473197014,167.523499309579;-0.356534402604942,0.228627602885351,-0.905876723929937,2323.49937911947];
 
-            
             cameraProjection = cameraIntrinsic * cameraExtrinsic;
             projectorProjection = projectorIntrinsic*projectorExtrinsic;          
         case 'calib_real'

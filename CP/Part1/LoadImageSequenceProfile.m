@@ -82,16 +82,15 @@ switch datasetName
     outputPath = 'output/';    
         
     case 'capture'
-    path = 'data/synthetic_data/';
-    filename = 'cube_T1';
-    prefix = '';
-    first = 0;
-    last = 39;
+    path = 'data/capture_data/';
+    filename = 'head_coffee';
+    prefix = 'IMG_';
+    first = 3296;
+    last = 3335;
     digits = 4;
-    suffix = 'png';
+    suffix = 'jpg';
     outputPath = 'output/';      
-        
-        
+           
     otherwise
     path = 'data/synthetic_data/';
     filename = 'cube_T1';
@@ -102,19 +101,4 @@ switch datasetName
     suffix = 'png';
     outputPath = 'output/';  
 end
-
-% path = 'data/real_data/';
-% filename = 'real_crayon_dalek';
-% prefix = 'IMG_';
-% first = 9418;
-% last = 9457;
-% digits = 4;
-% suffix = 'jpg';
-% outputPath = 'output/';
-
-
-
-
-
-
 end

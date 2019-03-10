@@ -1,5 +1,5 @@
 %close all;
-clearvars -except uvPatternSequence decodedUV;
+clearvars -except uvPatternSequence;
 
 % Setup & Initialisation
 % Options: cube_T1 monkey_T1 notebook_T1 red_T1 sphere_T1 tablet_T1
@@ -18,11 +18,7 @@ else
 end
 
 %% 1,2. Light Patterns Decoding & Unreliable Pixel Elimination
-if (exist('decodedUV','var') == 0)
-    decodedUV = DecodeUV(uvPatternSequence);
-else
-    disp("*UV Already Decoded");
-end
+decodedUV = DecodeUV(uvPatternSequence);
 
 % u = decodedUV(:,:,1);
 % v = decodedUV(:,:,2);
@@ -32,9 +28,9 @@ end
 
 %% 3,4 Calibration Matrix Setup & Depth Map Computation
 % Options: provided_synthetic calib_synthetic calib_real calib_capture
-depthMap = ComputeDepthMap(decodedUV, 'calib_real');
+%depthMap = ComputeDepthMap(decodedUV, 'calib_real');
 
 %% 5. Point Cloud Visualisation
-SavePLY(depthMap, strcat(outputPath,filename, '.ply'));
+%SavePLY(depthMap, strcat(outputPath,filename, '.ply'));
 
 disp('>>Task Complete')
