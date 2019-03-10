@@ -1,8 +1,8 @@
 warning('off','all');
-clear all;
+clear;
 
 %function CameraCalibration(mode)
-calibrationMode = 'synthetic';
+calibrationMode = 'real';
 
 switch calibrationMode
     case 'synthetic' 
@@ -13,7 +13,7 @@ switch calibrationMode
         last = 5;
         digits = 4;
         suffix = 'png';
-        outputPath = 'output/synthetic_reprojected_000';
+        outputPath = 'output/synthetic_reprojected_';
 
         % Projector & Checkboard Parameters
         projectorResolution = [1024,768];
@@ -21,35 +21,39 @@ switch calibrationMode
         checkboardSize = 270;
 
         % Projection Matrix Estimation & Reprojection
-        calibImageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);   
-        Reprojection(calibImageSequence, projectorResolution, checkboardPosition, checkboardSize, outputPath);
-
-%             for sn=1:2:5
-%             proj_name = ['data/synthetic_data/calibration/000',num2str(sn-1),'.png'];
-%             cam_name = ['data/synthetic_data/calibration/000',num2str(sn),'.png'];
-%             proj_img = imread(proj_name);
-%             cam_img = imread(cam_name);
-%             save_path = ['output/reproject_000',num2str(sn-1),'.png'];
-% 
-%             reprojection(proj_img, cam_img, 1024, 768, 378, 277, 270, save_path, true);
-         %end
+        imageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);   
+        calibImageSequence = imageSequence(:,:,:,1:2:5);
+        targetImageSequence = imageSequence(:,:,:,2:2:6);
+        clear imageSequence;
+        
+        Reprojection(calibImageSequence, targetImageSequence, projectorResolution, checkboardPosition, checkboardSize, outputPath);
 
     case 'real'    
+        % File Parameters
+        path = 'data/real_data/real_calibration/';
+        prefix = 'IMG_';
+        first = 9321;
+        last = 9329;
+        digits = 4;
+        suffix = 'jpg';
+        outputPath = 'output/real_reprojected_';
+
+        % Projector & Checkboard Parameters
+        projectorResolution = [1024,768];
+        checkboardPosition = [518,120];
+        checkboardSize = 299;
+
+        % Projection Matrix Estimation & Reprojection
+        calibImageSequence = load_sequence_color(path, prefix, first, last, digits, suffix);
+        targetImageSequence = calibImageSequence;
+        Reprojection(calibImageSequence, targetImageSequence, projectorResolution, checkboardPosition, checkboardSize, outputPath);
+        
     case 'capture'
     otherwise
         disp('ERROR: Undefined Calibration Mode');
 end
-   
-%% 1,2. Projection Matrix Estimation & Reprojection
-
-
-
-
-
-%% 3. Point Cloud Generation & Visualisation
-   
-%end
-function Reprojection(calibImageSequence, projectorResolution, checkerboardPosition, checkerboardSize, outputPath)
+  
+function Reprojection(calibImageSequence,targetImageSequence, projectorResolution, checkerboardPosition, checkerboardSize, outputPath)
     
     calibImageCount = size(calibImageSequence,4);
     resWidth = projectorResolution(1);
@@ -59,7 +63,7 @@ function Reprojection(calibImageSequence, projectorResolution, checkerboardPosit
     checkerboardCorner = [checkerboardX, checkerboardX+checkerboardSize, checkerboardX+checkerboardSize, checkerboardX;
                                checkerboardY, checkerboardY, checkerboardY+checkerboardSize, checkerboardY+checkerboardSize];
                            
-    for r = 1:2:calibImageCount-1
+    for r = 1:calibImageCount
         figure;
         imshow(calibImageSequence(:,:,:,r));
         title('Please select 4 corners');
@@ -67,10 +71,9 @@ function Reprojection(calibImageSequence, projectorResolution, checkerboardPosit
         selectedCorner = [corX, corY];
         
         H = EstimateHomography(checkerboardCorner, selectedCorner');
-        %H = get_homography(selectedCorner', checkerboardCorner);
         transfrom = maketform('projective',H');
-        reprojectedImage = imtransform(im2double(calibImageSequence(:,:,:,r+1)),transfrom, 'XData', [1, resWidth],'YData',[1, resHeight]);
-        imwrite(reprojectedImage,strcat(outputPath, num2str(r+1), '.jpg'));
+        reprojectedImage = imtransform(im2double(targetImageSequence(:,:,:,r)),transfrom, 'XData', [1, resWidth],'YData',[1, resHeight]);
+        imwrite(reprojectedImage,strcat(outputPath, num2str(r), '.jpg'));
         close all;
     end
     

@@ -26,7 +26,10 @@ tic
             isReliableV = true;
             
             % Compute binary code word
-            for d = 1:10    
+            for d = 1:10
+               sumU = 0;
+               sumV = 0;
+               
                if (codeWordU(h,w,d)>threshold)
                    currentU(d) = 1;
                elseif (codeWordU(h,w,d)<-threshold)
@@ -35,6 +38,7 @@ tic
                    currentU(d) = -1;
                    isReliableU = false;
                end  
+               
                
                if (codeWordV(h,w,d)>threshold)
                    currentV(d) = 1;

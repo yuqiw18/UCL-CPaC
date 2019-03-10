@@ -2,7 +2,9 @@
 clearvars -except uvPatternSequence decodedUV;
 
 % Setup & Initialisation
-[path, filename, prefix, first, last, digits, suffix, outputPath] = LoadImageSequenceProfile('cube_T1');
+% Options: cube_T1 monkey_T1 notebook_T1 red_T1 sphere_T1 tablet_T1
+% real_crayon_dalek real_tea capture
+[path, filename, prefix, first, last, digits, suffix, outputPath] = LoadImageSequenceProfile('real_crayon_dalek');
 
 % Load selected image sequence
 if (exist('uvPatternSequence','var') == 0)
@@ -29,7 +31,8 @@ end
 % subplot(1,2,2),imagesc(v),title('V');
 
 %% 3,4 Calibration Matrix Setup & Depth Map Computation
-depthMap = ComputeDepthMap(decodedUV, 'calib_synthetic');
+% Options: provided_synthetic calib_synthetic calib_real calib_capture
+depthMap = ComputeDepthMap(decodedUV, 'calib_real');
 
 %% 5. Point Cloud Visualisation
 SavePLY(depthMap, strcat(outputPath,filename, '.ply'));

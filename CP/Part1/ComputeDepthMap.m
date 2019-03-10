@@ -31,8 +31,6 @@ tic
                 p1 = K1\[j;i;1];
                 p2 = K2\[decodedUV(i,j,2); decodedUV(i,j,1);1];
 
-                
-                
                 % Compute linear constraints -> Camera
                 A(1,:) = [R1(3,1)*p1(1)-R1(1,1), R1(3,2)*p1(1)-R1(1,2), R1(3,3)*p1(1)-R1(1,3)];
                 A(2,:) = [R1(3,1)*p1(2)-R1(2,1), R1(3,2)*p1(2)-R1(2,2), R1(3,3)*p1(2)-R1(2,3)];
