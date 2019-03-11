@@ -10,7 +10,7 @@ switch datasetName
     digits = 4;
     suffix = 'png';
     outputPath = 'output/';
-    threshold = 0.16;
+    threshold = 0.2;
     
     case 'monkey_T1'
     path = 'data/synthetic_data/';

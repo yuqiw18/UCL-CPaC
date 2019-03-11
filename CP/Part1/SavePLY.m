@@ -1,26 +1,22 @@
 % Function
-function SavePLY(depthMap,filename)
+function SavePLY(pointCloud,filename)
 disp('Saving as .PLY File')
 tic
-fid=fopen(filename,'w');
-fprintf(fid, ['ply', '\n']);
-fprintf(fid, ['format ascii 1.0\n']);
-fprintf(fid, ['element vertex ', num2str(size(find(depthMap(:,:,3)),1)), '\n']);
-fprintf(fid, ['property float x', '\n']);
-fprintf(fid, ['property float y', '\n']);
-fprintf(fid, ['property float z', '\n']);
-fprintf(fid, ['end_header', '\n']);
+    pointNum = size(pointCloud,1);
+    file=fopen(filename,'w');
+    fprintf(file, ['ply', '\n']);
+    fprintf(file, ['format ascii 1.0\n']);
+    fprintf(file, ['element vertex ', num2str(pointNum), '\n']);
+    fprintf(file, ['property float x', '\n']);
+    fprintf(file, ['property float y', '\n']);
+    fprintf(file, ['property float z', '\n']);
+    fprintf(file, ['end_header', '\n']);
 
-[h,w,~] = size(depthMap);
-
-for i=1:h
-    for j=1:w
-        if(depthMap(i,j,3)~=0)
-            fprintf(fid, '%f %f %f\n', depthMap(i,j,1),depthMap(i,j,2), depthMap(i,j,3));
-        end
+    for p=1:pointNum
+        % Save x, y, z coordinate as float
+        fprintf(file, '%f %f %f\n', pointCloud(p,1), pointCloud(p,2), pointCloud(p,3)); 
     end
-end
-fclose(fid);
+    fclose(file);
 toc
 end
 

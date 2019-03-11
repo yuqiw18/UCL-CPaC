@@ -22,7 +22,7 @@ function H = EstimateHomography(checkerboardCorner, selectedCorner)
     end
     
     % Solve the SVD where AH = 0 and A=USV';
-    % Select the last singular vector of V as the solution to H to avoid H being all zeros
+    % Select the last singular vector of V as the solution to H
     [~,~,V] = svd(A); 
     s = V(:,size(V,2))';
     

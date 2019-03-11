@@ -1,51 +1,64 @@
 % Function for computing depth map and point cloud
-function depthMap = ComputeDepthMap(decodedUV, calibrationMatrix)
+function [depthMap, pointCloud] = ComputeDepthMap(decodedUV, calibrationMatrix)
 disp('@Computing Depth Map')
 tic
 
-[cameraIntrinsic,cameraExtrinsic,cameraProjection,projectorIntrinsic,projectorExtrinsic,projectorProjection] = LoadCalibMatrixProfile(calibrationMatrix);
-              
-    [w,h,~] = size(decodedUV);
-    depthMap = zeros(w,h,3);
+    [height,width,~] = size(decodedUV);
+    depthMap = zeros(height,height);
+    
+    pointNum = 0;
+    for h = 1:height
+        for w = 1:width
+            if (decodedUV(h,w,1) ~= -1 && decodedUV(h,w,2) ~= -1)
+                pointNum = pointNum + 1;
+            end
+        end
+    end
+    pointCloud = zeros(pointNum,3);
+    
+    [cameraIntrinsic,cameraExtrinsic,cameraProjection,projectorIntrinsic,projectorExtrinsic,projectorProjection] = LoadCalibMatrixProfile(calibrationMatrix);         
+  
+    % Load intrinsic matrix
+    KKCamera = cameraIntrinsic;
+    KKProjector = projectorIntrinsic;
 
-    % Load Intrinsic Matrix
-    K1 = cameraIntrinsic;
-    K2 = projectorIntrinsic;
-
-    % Compute Rotation/Translation matrices
-    R1 = cameraExtrinsic(1:3,1:3);
-    T1 = cameraExtrinsic(1:3,4);
-    R2 = projectorExtrinsic(1:3,1:3);
-    T2 = projectorExtrinsic(1:3,4);
-
+    % Load rotation and translation matrix from extrinsic matrix
+    RcCamera = cameraExtrinsic(1:3,1:3);
+    TcCamera = cameraExtrinsic(1:3,4);
+    RcProjector = projectorExtrinsic(1:3,1:3);
+    TcProjector = projectorExtrinsic(1:3,4);
+    
+    p = 1;
     % For each point solve the linear system
-    for i=1:w
-        %disp(i/w*100);
-        for j=1:h
-            if(decodedUV(i,j,1)~=-1 && decodedUV(i,j,2)~=-1)
-                % Compute A and b
+    for h=1:height
+        for w=1:width
+            if(decodedUV(h,w,1)~=-1 && decodedUV(h,w,2)~=-1)
+
                 A = zeros(4,3);
                 b = zeros(4,1);
                              
-                % Convert points to normalized camera coordinates
-                p1 = K1\[j;i;1];
-                p2 = K2\[decodedUV(i,j,2); decodedUV(i,j,1);1];
+                pCamera = KKCamera\[w;h;1];
+                pProjector = KKProjector\[decodedUV(h,w,2); decodedUV(h,w,1);1];
 
-                % Compute linear constraints -> Camera
-                A(1,:) = [R1(3,1)*p1(1)-R1(1,1), R1(3,2)*p1(1)-R1(1,2), R1(3,3)*p1(1)-R1(1,3)];
-                A(2,:) = [R1(3,1)*p1(2)-R1(2,1), R1(3,2)*p1(2)-R1(2,2), R1(3,3)*p1(2)-R1(2,3)];
-                b(1:2) = [T1(1)-T1(3)*p1(1), T1(2)-T1(3)*p1(2)];
+                A(1,:) = [RcCamera(3,1)*pCamera(1)-RcCamera(1,1), RcCamera(3,2)*pCamera(1)-RcCamera(1,2), RcCamera(3,3)*pCamera(1)-RcCamera(1,3)];
+                A(2,:) = [RcCamera(3,1)*pCamera(2)-RcCamera(2,1), RcCamera(3,2)*pCamera(2)-RcCamera(2,2), RcCamera(3,3)*pCamera(2)-RcCamera(2,3)];
+                A(3,:) = [RcProjector(3,1)*pProjector(1)-RcProjector(1,1), RcProjector(3,2)*pProjector(1)-RcProjector(1,2), RcProjector(3,3)*pProjector(1)-RcProjector(1,3)];
+                A(4,:) = [RcProjector(3,1)*pProjector(2)-RcProjector(2,1), RcProjector(3,2)*pProjector(2)-RcProjector(2,2), RcProjector(3,3)*pProjector(2)-RcProjector(2,3)];
+                b(1) = TcCamera(1)-TcCamera(3)*pCamera(1);
+                b(2) = TcCamera(2)-TcCamera(3)*pCamera(2);
+                b(3) = TcProjector(1)-TcProjector(3)*pProjector(1);
+                b(4) = TcProjector(2)-TcProjector(3)*pProjector(2);
 
-                % Compute linear constraints -> Projector (~ camera no.2)
-                A(3,:) = [R2(3,1)*p2(1)-R2(1,1), R2(3,2)*p2(1)-R2(1,2), R2(3,3)*p2(1)-R2(1,3)];
-                A(4,:) = [R2(3,1)*p2(2)-R2(2,1), R2(3,2)*p2(2)-R2(2,2), R2(3,3)*p2(2)-R2(2,3)];
-                b(3:4) = [T2(1)-T2(3)*p2(1), T2(2)-T2(3)*p2(2)];
-
-                % Compute the least squares solution
                 x = A\b;
-
-                % Store Depth
-                depthMap(i,j,:) = cameraExtrinsic(1:3,1:4)*[x;1];
+    
+                lambda_cord = [KKCamera(1,:),0;KKCamera(2,:),0;KKCamera(3,:),0]*[cameraExtrinsic;0,0,0,1] * [x;1];
+                depthMap(h,w) = lambda_cord(3);
+                
+                pointCloud(p,:) = x;
+                p = p + 1;
+            else
+                % Unreliable pixel
+                depthMap(h,w) = -1;
             end
         end
     end
