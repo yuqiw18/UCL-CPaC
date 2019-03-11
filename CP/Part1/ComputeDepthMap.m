@@ -6,6 +6,7 @@ tic
     [height,width,~] = size(decodedUV);
     depthMap = zeros(height,height);
     
+    % Preallocation
     pointNum = 0;
     for h = 1:height
         for w = 1:width
@@ -16,7 +17,7 @@ tic
     end
     pointCloud = zeros(pointNum,3);
     
-    [cameraIntrinsic,cameraExtrinsic,cameraProjection,projectorIntrinsic,projectorExtrinsic,projectorProjection] = LoadCalibMatrixProfile(calibrationMatrix);         
+    [cameraIntrinsic,cameraExtrinsic,~,projectorIntrinsic,projectorExtrinsic,~] = LoadCalibMatrixProfile(calibrationMatrix);         
   
     % Load intrinsic matrix
     KKCamera = cameraIntrinsic;
@@ -34,11 +35,12 @@ tic
         for w=1:width
             if(decodedUV(h,w,1)~=-1 && decodedUV(h,w,2)~=-1)
 
+                % Construct A and b
                 A = zeros(4,3);
                 b = zeros(4,1);
                              
                 pCamera = KKCamera\[w;h;1];
-                pProjector = KKProjector\[decodedUV(h,w,2); decodedUV(h,w,1);1];
+                pProjector = KKProjector\[decodedUV(h,w,2);decodedUV(h,w,1);1];
 
                 A(1,:) = [RcCamera(3,1)*pCamera(1)-RcCamera(1,1), RcCamera(3,2)*pCamera(1)-RcCamera(1,2), RcCamera(3,3)*pCamera(1)-RcCamera(1,3)];
                 A(2,:) = [RcCamera(3,1)*pCamera(2)-RcCamera(2,1), RcCamera(3,2)*pCamera(2)-RcCamera(2,2), RcCamera(3,3)*pCamera(2)-RcCamera(2,3)];
@@ -48,12 +50,15 @@ tic
                 b(2) = TcCamera(2)-TcCamera(3)*pCamera(2);
                 b(3) = TcProjector(1)-TcProjector(3)*pProjector(1);
                 b(4) = TcProjector(2)-TcProjector(3)*pProjector(2);
-
+                
+                % Solve the SLE
                 x = A\b;
     
-                lambda_cord = [KKCamera(1,:),0;KKCamera(2,:),0;KKCamera(3,:),0]*[cameraExtrinsic;0,0,0,1] * [x;1];
-                depthMap(h,w) = lambda_cord(3);
+                % Acquire the Z 
+                pLambda = cameraIntrinsic*cameraExtrinsic*[x;1];
+                depthMap(h,w) = pLambda(3); 
                 
+                % Output coordinates
                 pointCloud(p,:) = x;
                 p = p + 1;
             else

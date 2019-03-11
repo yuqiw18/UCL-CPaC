@@ -43,7 +43,7 @@ switch datasetName
     digits = 4;
     suffix = 'png';
     outputPath = 'output/';
-    threshold = 0.16;
+    threshold = 0.10;
             
     case 'sphere_T1'
     path = 'data/synthetic_data/';
@@ -98,7 +98,7 @@ switch datasetName
     digits = 4;
     suffix = 'jpg';
     outputPath = 'output/';
-    threshold = 0.08;
+    threshold = 0.16;
            
     otherwise
     path = 'data/synthetic_data/';

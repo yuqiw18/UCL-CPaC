@@ -28,24 +28,18 @@ tic
             % Compute binary code word
             for d = 1:10
 
-               if (differenceU(h,w,d)>threshold)
+               if (differenceU(h,w,d)>0)
                    codewordU(d) = 1;
-               elseif (differenceU(h,w,d)<-threshold)
-                   codewordU(d) = 0;
                else
                    codewordU(d) = 0;
                end
-               
                sumU = sumU + abs(differenceU(h,w,d));
                
-               if (differenceV(h,w,d)>threshold)
+               if (differenceV(h,w,d)>0)
                    codewordV(d) = 1;
-               elseif (differenceV(h,w,d)<-threshold)
-                   codewordV(d) = 0;
                else
                    codewordV(d) = 0;
                end
-               
                sumV = sumV + abs(differenceV(h,w,d));
             end
             
