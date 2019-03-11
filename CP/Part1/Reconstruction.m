@@ -5,7 +5,7 @@ clearvars -except uvPatternSequence;
 % Options: cube_T1 monkey_T1 notebook_T1 red_T1 sphere_T1 tablet_T1
 % real_crayon_dalek real_tea 
 % capture
-[path, filename, prefix, first, last, digits, suffix, outputPath, threshold] = LoadImageSequenceProfile('real_tea');
+[path, filename, prefix, first, last, digits, suffix, outputPath, threshold] = LoadImageSequenceProfile('real_crayon_dalek');
 
 % Load selected image sequence
 if (exist('uvPatternSequence','var') == 0)

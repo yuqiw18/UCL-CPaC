@@ -14,9 +14,8 @@ function Reprojection(calibImageSequence,targetImageSequence, projectorResolutio
     for r = 1:calibImageCount
         
         % Select 4 corners (clockwise-> top-left, top-right, bottom-right, bottom-left)
-        figure;
         imshow(calibImageSequence(:,:,:,r));
-        title('Please select 4 corners');
+        title('Please select 4 corners clockwise');
         [corX, corY] = getline(gcf);
         selectedCorner = [corX, corY];
         
@@ -24,11 +23,12 @@ function Reprojection(calibImageSequence,targetImageSequence, projectorResolutio
         H = EstimateHomography(checkerboardCorner, selectedCorner');
         
         % Reproject with homography
-        transform = projective2d(H');
+        transform = projective2d(H);
         reprojectedImage = imwarp(im2double(targetImageSequence(:,:,:,r)), transform, 'OutputView', imref2d([resHeight,resWidth]));
         
         % Save the result for next calibration steps
         imwrite(reprojectedImage,strcat(outputPath, num2str(r), '.jpg'));
+        disp(strcat("Reprojected image saved as ", outputPath, num2str(r), '.jpg'));
         close all;
     end
     
