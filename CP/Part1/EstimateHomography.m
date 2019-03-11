@@ -1,6 +1,7 @@
 function H = EstimateHomography(checkerboardCorner, selectedCorner)
 
     [~,num] = size(selectedCorner);
+    
     % Convert the cordinates into Cartesian system
     pts1Cart = [selectedCorner; ones(1,num)];
     pts2Cart = [checkerboardCorner; ones(1,num)];

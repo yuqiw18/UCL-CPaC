@@ -3,8 +3,9 @@ clearvars -except uvPatternSequence;
 
 % Setup & Initialisation
 % Options: cube_T1 monkey_T1 notebook_T1 red_T1 sphere_T1 tablet_T1
-% real_crayon_dalek real_tea capture
-[path, filename, prefix, first, last, digits, suffix, outputPath] = LoadImageSequenceProfile('real_crayon_dalek');
+% real_crayon_dalek real_tea 
+% capture
+[path, filename, prefix, first, last, digits, suffix, outputPath, threshold] = LoadImageSequenceProfile('real_tea');
 
 % Load selected image sequence
 if (exist('uvPatternSequence','var') == 0)
@@ -18,13 +19,13 @@ else
 end
 
 %% 1,2. Light Patterns Decoding & Unreliable Pixel Elimination
-decodedUV = DecodeUV(uvPatternSequence);
+decodedUV = DecodeUV(uvPatternSequence, threshold);
 
-% u = decodedUV(:,:,1);
-% v = decodedUV(:,:,2);
-% figure;
-% subplot(1,2,1),imagesc(u),title('U');
-% subplot(1,2,2),imagesc(v),title('V');
+u = decodedUV(:,:,1);
+v = decodedUV(:,:,2);
+figure;
+subplot(1,2,1),imagesc(u),title('U');
+subplot(1,2,2),imagesc(v),title('V');
 
 %% 3,4 Calibration Matrix Setup & Depth Map Computation
 % Options: provided_synthetic calib_synthetic calib_real calib_capture

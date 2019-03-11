@@ -1,5 +1,5 @@
 % Function for loading image sequence parameters
-function [path, filename, prefix, first, last, digits, suffix, outputPath] = LoadImageSequenceProfile(datasetName)
+function [path, filename, prefix, first, last, digits, suffix, outputPath, threshold] = LoadImageSequenceProfile(datasetName)
 switch datasetName
     case 'cube_T1'
     path = 'data/synthetic_data/';
@@ -10,6 +10,7 @@ switch datasetName
     digits = 4;
     suffix = 'png';
     outputPath = 'output/';
+    threshold = 0.16;
     
     case 'monkey_T1'
     path = 'data/synthetic_data/';
@@ -19,7 +20,8 @@ switch datasetName
     last = 39;
     digits = 4;
     suffix = 'png';
-    outputPath = 'output/';    
+    outputPath = 'output/';  
+    threshold = 0.16;
         
     case 'notebook_T1'
     path = 'data/synthetic_data/';
@@ -29,7 +31,8 @@ switch datasetName
     last = 39;
     digits = 4;
     suffix = 'png';
-    outputPath = 'output/';        
+    outputPath = 'output/'; 
+    threshold = 0.16;
         
     case 'red_T1'
     path = 'data/synthetic_data/';
@@ -39,7 +42,8 @@ switch datasetName
     last = 39;
     digits = 4;
     suffix = 'png';
-    outputPath = 'output/';        
+    outputPath = 'output/';
+    threshold = 0.16;
             
     case 'sphere_T1'
     path = 'data/synthetic_data/';
@@ -50,7 +54,8 @@ switch datasetName
     digits = 4;
     suffix = 'png';
     outputPath = 'output/';    
-        
+    threshold = 0.16;
+    
     case 'tablet_T1'
     path = 'data/synthetic_data/';
     filename = 'tablet_T1';
@@ -59,7 +64,8 @@ switch datasetName
     last = 39;
     digits = 4;
     suffix = 'png';
-    outputPath = 'output/';    
+    outputPath = 'output/';
+    threshold = 0.16;
     
     case 'real_crayon_dalek'
     path = 'data/real_data/';
@@ -69,7 +75,8 @@ switch datasetName
     last = 9457;
     digits = 4;
     suffix = 'jpg';
-    outputPath = 'output/';          
+    outputPath = 'output/';
+    threshold = 0.16;
     
     case 'real_tea'
     path = 'data/real_data/';
@@ -79,7 +86,8 @@ switch datasetName
     last = 9416;
     digits = 4;
     suffix = 'jpg';
-    outputPath = 'output/';    
+    outputPath = 'output/';
+    threshold = 0.16;
         
     case 'capture'
     path = 'data/capture_data/';
@@ -89,7 +97,8 @@ switch datasetName
     last = 3335;
     digits = 4;
     suffix = 'jpg';
-    outputPath = 'output/';      
+    outputPath = 'output/';
+    threshold = 0.08;
            
     otherwise
     path = 'data/synthetic_data/';
@@ -99,6 +108,7 @@ switch datasetName
     last = 39;
     digits = 4;
     suffix = 'png';
-    outputPath = 'output/';  
+    outputPath = 'output/';
+    threshold = 0.16;
 end
 end
